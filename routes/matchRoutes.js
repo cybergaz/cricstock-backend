@@ -29,11 +29,11 @@ router.get("/fetch-and-store-all", async (req, res) => {
 });
 
 router.get("/get-score/:matchId", async (req, res) => {
-  const {matchId} = req.params;
+  const { matchId } = req.params;
   if (!matchId) {
     return res.status(400).json({ error: "matchId is required" });
   }
-  
+
   try {
     const response = await axios.get(
       `https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/${matchId}/hscard`,

@@ -190,7 +190,7 @@ const checkIsSuperAdmin = async (id) => {
       return { success: false, code: 404, message: "No Such Admin Exists" };
     }
     if (admin.isAdmin && admin.role !== "super_admin") {
-      return { success: false, code: 403, message: "Not A Super Admin" };
+      return { success: false, code: 403, message: "You are not super admin to perform such action" };
     }
 
     return { success: true, code: 200, data: admin };

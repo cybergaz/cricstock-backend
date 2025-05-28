@@ -18,9 +18,9 @@ const UserSchema = new mongoose.Schema({
   profileImage: { type: String },
   amount: { type: Number, default: 0 },
 
-  referredBy: { type: String},
+  referredBy: { type: String },
   referralCodes: { type: [String], default: [] },
-  totalReferrals: {type: Number},
+  totalReferrals: { type: Number },
 
   transactions: [
     {
@@ -38,12 +38,12 @@ const UserSchema = new mongoose.Schema({
         enum: ["Pending", "Completed", "Failed"],
         default: "Pending",
       },
-      txnType:{
-        type:String,
+      txnType: {
+        type: String,
         enum: ["Deposit", "Withdrawal"],
       },
-      txnPaymentMethod:{
-        type:String,
+      txnPaymentMethod: {
+        type: String,
         enum: ["BT", "UPI", "NB", "CC", "DC"]
       },
       txnDate: {
@@ -53,7 +53,7 @@ const UserSchema = new mongoose.Schema({
     },
   ],
   // User Portfolio Schema
-  playerPortfolio: [
+  portfolio: [
     {
       matchId: { type: String },
       playerId: { type: String }, // Reference to the player
@@ -105,4 +105,4 @@ const OtpRequestSchema = new mongoose.Schema({
 const User = mongoose.model("User", UserSchema);
 const OtpRequest = mongoose.model("OTPrequest", OtpRequestSchema);
 
-export { User, OtpRequest};
+export { User, OtpRequest };

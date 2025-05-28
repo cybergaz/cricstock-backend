@@ -118,13 +118,13 @@ router.get('/fetch-users', async (req, res) => {
 
 router.get('/fetch-all-admins', authMiddleware, async (req, res) => {
   try {
-    const admins = await User.find({ isAdmin: true }).select('name role');
+    const admins = await User.find({ isAdmin: true }).select('_id name role');
 
     if (!admins) {
       return res.status(404).json({ message: "No Admin Found" })
     }
 
-    res.status(200).json({ admins });
+    res.status(200).json({ data: admins });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch users" });
   }

@@ -192,8 +192,6 @@ export const fetchMatchScore = async (matchId) => {
     );
 
 
-
-
     io.to(matchId).emit("scoreUpdate", storedMatchScore);
     console.log("storedMatchScore :", storedMatchScore)
     console.log(`Broadcasting update for match ${matchId}`);
