@@ -20,9 +20,9 @@ const io = initializeSocket(server);
 app.use(express.json());
 app.use(
   cors({
-    origin: "*", // Add your frontend and backend URLs
+    origin: "*",
     methods: "GET,POST,PUT,DELETE",
-    credentials: true, // Allow cookies and auth headers
+    credentials: true,
   })
 );
 app.use(
@@ -53,17 +53,19 @@ import portfolioRoute from "./routes/portfolioRoute.js";
 import paymentRoute from "./routes/paymentRoute.js"
 import adminRoute from "./routes/adminRoutes.js"
 import emailService from "./routes/emailSevice.js";
+import cricketRoute from "./routes/cricketRoute.js";
 import { startTrackingUserPortfolioMatches } from "./MatchPortfolioTracker/MatchPortfolioTracker.js";
 
 // Define Routes
 app.use("/auth", authRoutes);
-app.use("/matches", matchRoutes);
-app.use("/match-scores", matchScores);
+// app.use("/matches", matchRoutes);
+// app.use("/match-scores", matchScores);
 app.use("/upload", uploadRoutes);
-app.use("/portfolio", portfolioRoute);
+// app.use("/portfolio", portfolioRoute);
 app.use("/payment", paymentRoute);
 app.use("/admin", adminRoute)
-app.use("/api", emailService);
+// app.use("/api", emailService);
+app.use("/cricket",cricketRoute);
 
 // Root Route
 app.get("/", (req, res) => {

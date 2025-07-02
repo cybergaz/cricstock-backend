@@ -1,12 +1,7 @@
 import express from 'express';
-import { MatchSchedule } from '../models/MatchSchedule.js';
-import axios from 'axios';
-import cron from 'node-cron';
-import dotenv from 'dotenv';
 import { User } from '../models/User.js';
-import Admin from '../models/admin';
 import authMiddleware from '../middlewares/authMiddleware.js';
-import { checkIsSuperAdmin, findUserByPhone } from "../services/actions"
+import { checkIsSuperAdmin } from "../services/actions.js"
 
 const router = express.Router();
 
