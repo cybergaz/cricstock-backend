@@ -217,8 +217,27 @@ const findAdminById = async (id) => {
   }
 }
 
+function getTodayToNext5DaysRange() {
+  const today = new Date();
+
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const start = `${yyyy}-${mm}-${dd}`;
+
+  const future = new Date(today);
+  future.setDate(future.getDate() + 5);
+  const yyyy2 = future.getFullYear();
+  const mm2 = String(future.getMonth() + 1).padStart(2, '0');
+  const dd2 = String(future.getDate()).padStart(2, '0');
+  const end = `${yyyy2}-${mm2}-${dd2}`;
+
+  return `${start}_${end}`;
+}
+
 
 export {
+  getTodayToNext5DaysRange,
   findUserByPhone,
   findOtpByPhone,
   createNewUser,

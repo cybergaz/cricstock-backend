@@ -77,12 +77,26 @@ const livescoreSchema = new mongoose.Schema({
     },
     teams: [{
         id: String,
-        title: String,
-        abbr: String,
+        name: String,
+        short_name: String,
         thumb_url: String,
         logo_url: String,
         head_coach: String,
         score: String,
+    }]
+    , players: [{
+        id: Number,
+        first_name: String,
+        middle_name: String,
+        last_name: String,
+        short_name: String,
+        birthdate: String,
+        birthplace: String,
+        country: String,
+        playing_role: String,
+        batting_style: String,
+        bowling_style: String,
+        bowling_type: String,
     }]
 });
 
