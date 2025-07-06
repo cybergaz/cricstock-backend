@@ -17,7 +17,7 @@ export async function startTrackingUserPortfolioMatches() {
       ]
     });
 
-    console.log(`Found ${users.length} users with portfolios`);
+    // console.log(`Found ${users.length} users with portfolios`);
 
     // Process each user's portfolios
     users.forEach((user) => {
@@ -26,7 +26,7 @@ export async function startTrackingUserPortfolioMatches() {
         user.portfolio.forEach((item) => {
           const holdings = Number(item.currentHoldings);
           if (!isNaN(holdings) && holdings > 0) {
-            console.log(`Adding active match from user ${user._id}'s player portfolio: ${item.matchId} with holdings: ${holdings}`);
+            // console.log(`Adding active match from user ${user._id}'s player portfolio: ${item.matchId} with holdings: ${holdings}`);
             matchesWithActiveHoldings.set(item.matchId, true);
           }
         });
@@ -37,7 +37,7 @@ export async function startTrackingUserPortfolioMatches() {
         user.teamPortfolio.forEach((item) => {
           const holdings = Number(item.currentHoldings);
           if (!isNaN(holdings) && holdings > 0) {
-            console.log(`Adding active match from user ${user._id}'s team portfolio: ${item.matchId} with holdings: ${holdings}`);
+            // console.log(`Adding active match from user ${user._id}'s team portfolio: ${item.matchId} with holdings: ${holdings}`);
             matchesWithActiveHoldings.set(item.matchId, true);
           }
         });
@@ -46,7 +46,7 @@ export async function startTrackingUserPortfolioMatches() {
 
     // Get array of match IDs that have active holdings
     const matchIds = [...matchesWithActiveHoldings.keys()];
-    console.log("Tracking matchIds from portfolios with active holdings:", matchIds);
+    // console.log("Tracking matchIds from portfolios with active holdings:", matchIds);
 
     // Skip tracking if no matches have active holdings
     if (matchIds.length === 0) {
@@ -56,14 +56,14 @@ export async function startTrackingUserPortfolioMatches() {
 
     for (const matchId of matchIds) {
       if (activePortfolioMatches.has(matchId)) {
-        console.log(`Match ${matchId} already being tracked. Skipping.`);
+        // console.log(`Match ${matchId} already being tracked. Skipping.`);
         continue;
       }
 
       // Check if match is already complete
       const match = await MatchScore.findOne({ matchId });
       if (match?.isMatchComplete) {
-        console.log(`Skipping completed match ${matchId}`);
+        // console.log(`Skipping completed match ${matchId}`);
         continue;
       }
 
@@ -86,7 +86,7 @@ export async function startTrackingUserPortfolioMatches() {
       activePortfolioMatches.set(matchId, interval);
     }
 
-    console.log(`Now tracking ${activePortfolioMatches.size} active matches`);
+    // console.log(`Now tracking ${activePortfolioMatches.size} active matches`);
   } catch (err) {
     console.error("Error starting portfolio match tracking:", err.message);
   }
@@ -98,7 +98,7 @@ export function stopAllPortfolioTracking() {
 
   activePortfolioMatches.forEach((interval, matchId) => {
     clearInterval(interval);
-    console.log(`Stopped tracking match ${matchId}`);
+    // console.log(`Stopped tracking match ${matchId}`);
   });
 
   activePortfolioMatches.clear();
@@ -187,7 +187,7 @@ export async function cleanupInactiveMatches() {
       clearInterval(activePortfolioMatches.get(matchId));
       activePortfolioMatches.delete(matchId);
       removedCount++;
-      console.log(`Stopped tracking match ${matchId} (no active holdings)`);
+      // console.log(`Stopped tracking match ${matchId} (no active holdings)`);
     }
   }
 

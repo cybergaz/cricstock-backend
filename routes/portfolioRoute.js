@@ -1,6 +1,5 @@
 import express from "express";
 import { User } from "../models/User.js";
-import jwt from "jsonwebtoken";
 import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -164,7 +163,6 @@ router.post("/sell-player-portfolio", authMiddleware, async (req, res) => {
   }
 });
 
-// Get user's portfolio
 router.get("/get-player-portfolio", authMiddleware, async (req, res) => {
   try {
     if (!req.user || !req.user.userId) {
@@ -196,8 +194,6 @@ router.get("/get-player-portfolio", authMiddleware, async (req, res) => {
   }
 });
 
-
-// routes for teamportfolio 
 router.post("/store-team-portfolio", authMiddleware, async (req, res) => {
   try {
     if (!req.user || !req.user.userId) {
@@ -355,7 +351,6 @@ router.post("/sell-team-portfolio", authMiddleware, async (req, res) => {
   }
 });
 
-// Get user's team portfolio
 router.get("/get-team-portfolio", authMiddleware, async (req, res) => {
   try {
     if (!req.user || !req.user.userId) {

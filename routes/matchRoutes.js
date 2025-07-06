@@ -1,7 +1,8 @@
 import express from "express";
-import { MatchSchedule } from "../models/MatchSchedule.js";
 import axios from "axios";
 import cron from "node-cron";
+import { update_scheduledmatches, update_livematches, update_livescores, update_competitions } from '../services/cricket.js';
+
 import dotenv from "dotenv";
 import {
   deleteOldOtpRequests,
@@ -90,6 +91,29 @@ cron.schedule("5 0 * * *", () => {
   deleteOldReferrals();
 });
 
+// // once a week (Sunday midnight)
+// cron.schedule('0 0 * * 0', () => {
+//   console.log('Updating Scheduled Matches...');
+//   update_scheduledmatches();
+// });
+
+// // once a day (midnight)
+// cron.schedule('0 0 * * *', () => {
+//   console.log('Updating Live Matches...');
+//   update_livematches();
+// });
+
+// // every minute
+// cron.schedule('* * * * *', () => {
+//   console.log('Updating Live Scores...');
+//   update_livescores();
+// });
+
+// // every year
+// cron.schedule('0 0 1 1 *', () => {
+//   console.log('Updating Competitions...');
+//   update_competitions();
+// });
 
 
 // Route to get the count of stored matches

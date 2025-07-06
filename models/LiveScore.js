@@ -100,4 +100,4 @@ const livescoreSchema = new mongoose.Schema({
     }]
 });
 
-export default mongoose.model("Livescore", livescoreSchema);
+export default mongoose.model("LiveScores", livescoreSchema);

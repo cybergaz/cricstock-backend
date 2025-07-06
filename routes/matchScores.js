@@ -1,6 +1,5 @@
 import express from "express";
 import { MatchScore } from "../models/MatchScore.js";
-import { MatchSchedule } from "../models/MatchSchedule.js";
 import { User } from "../models/User.js";
 import axios from "axios";
 import dotenv from "dotenv";
