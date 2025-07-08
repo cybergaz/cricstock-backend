@@ -1,9 +1,10 @@
 import express from "express";
-import { update_competitions, update_livematches, update_livescore, update_livescores, update_scheduledmatches } from "../services/cricket.js";
+import { update_competitions, update_livematches, update_livescore, update_livescorecard, update_livescorecards, update_livescores, update_scheduledmatches } from "../services/cricket.js";
 import ScheduledMatches from "../models/ScheduledMatches.js";
 import LiveMatches from "../models/LiveMatches.js";
 import LiveScore from "../models/LiveScore.js";
 import Competitions from "../models/Competition.js";
+import LiveScorecard from "../models/LiveScorecard.js";
 
 const router = express.Router();
 
@@ -72,7 +73,7 @@ router.get("/live/:match_id", async (req, res) => {
     const match_data = await LiveScore.findOne({ mid: match_id });
 
     if (!match_data) {
-      return res.status(404).json({ message: "No Live Score Found for this Match" });
+      return res.status(404).json({ message: "No Live Score Found" });
     }
 
     res.status(200).json({ data: match_data });
@@ -84,10 +85,24 @@ router.get("/live/:match_id", async (req, res) => {
     });
   }
 });
+router.get("/scorecard/:match_id", async (req, res) => {
+  try {
+    const { match_id } = req.params;
 
-// update_competitions()
-// update_scheduledmatches()
-// update_livematches()
-// update_livescores()
+    const match_data = await LiveScorecard.findOne({ match_id: match_id });
+
+    if (!match_data) {
+      return res.status(404).json({ message: "No Live Scorecard Found" });
+    }
+
+    res.status(200).json({ data: match_data });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching match by ID",
+      error: error.message
+    });
+  }
+});
 
 export default router;

@@ -24,27 +24,29 @@ const UserSchema = new mongoose.Schema({
 
   transactions: [
     {
-      txnID: {
+      tID: {
         type: String,
       },
-      // OID: {
-      //   type: String,
-      // },
-      txnAmount: {
+      oID: {
+        type: String,
+      },
+      amount: {
         type: Number,
       },
-      txnStatus: {
+      status: {
         type: String,
         enum: ["Pending", "Completed", "Failed"],
         default: "Pending",
       },
-      txnType: {
+      type: {
         type: String,
         enum: ["Deposit", "Withdrawal"],
+        default: "Deposit"
       },
-      txnPaymentMethod: {
+      method: {
         type: String,
-        enum: ["BT", "UPI", "NB", "CC", "DC"]
+        enum: ["BT", "UPI", "NB", "CC", "DC"],
+        default: "UPI",
       },
       txnDate: {
         type: Date,

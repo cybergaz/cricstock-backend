@@ -107,6 +107,7 @@ cron.schedule("5 0 * * *", () => {
 // cron.schedule('* * * * *', () => {
 //   console.log('Updating Live Scores...');
 //   update_livescores();
+// update_livescorecards()
 // });
 
 // // every year
