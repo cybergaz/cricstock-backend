@@ -45,7 +45,6 @@ router.get("/today", async (req, res) => {
   }
 });
 
-
 router.get("/scorecard/:match", async (req, res) => {
   try {
     const { match } = req.params;
@@ -75,7 +74,7 @@ router.get("/scorecard/:match", async (req, res) => {
 // todays()
 
 // 5 sec
-// scorecards()
+scorecards()
 
 
 // router.get("/live", async (req, res) => {

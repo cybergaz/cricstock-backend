@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(
   cors({
     origin: "http://localhost:3000",
-    methods: "GET,POST,PUT,DELETE",
+    methods: "GET,POST,PUT,DELETE,PATCH",
     credentials: true,
   })
 );
@@ -52,6 +52,7 @@ import portfolioRoute from "./routes/portfolio.route.js"
 import adminRoute from "./routes/adminRoutes.js"
 import emailService from "./routes/emailSevice.js";
 import cricketRoute from "./routes/cricketRoute.js";
+import userRoute from "./routes/userRoute.js";
 
 // Define Routes
 app.use("/auth", authRoutes);
@@ -61,6 +62,7 @@ app.use("/upload", uploadRoutes);
 // app.use("/portfolio", portfolioRoute);
 app.use("/portfolio", portfolioRoute);
 app.use("/payment", paymentRoute);
+app.use("/user", userRoute);
 app.use("/admin", adminRoute)
 // app.use("/api", emailService);
 app.use("/cricket", cricketRoute);

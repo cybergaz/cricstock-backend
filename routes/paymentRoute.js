@@ -40,7 +40,8 @@ router.post("/order/create",
         return res.status(404).json({ error: "User not found" });
       }
 
-      const orderId = `ORDER_${Date.now()}`;
+      const orderId = `ODR_${Date.now()}`
+      const txnId = `ODR_${Date.now()}`
 
       const orderRequest = {
         order_id: orderId,
@@ -54,7 +55,7 @@ router.post("/order/create",
         order_meta: {
           return_url: `${FRONT
             .replace("http", "https")
-            }/wallet?payment=success`,
+            }/wallet?payment=success&ODR=${orderId}`,
         },
       };
 
@@ -72,8 +73,8 @@ router.post("/order/create",
       const result = await response.json();
 
       const newTransaction = {
-        tID: `TXN_${Date.now()}`,
-        oID: `ODR_${Date.now()}`,
+        tID: txnId,
+        oID: orderId,
         amount: amount,
         txnDate: new Date(),
       };
@@ -83,6 +84,7 @@ router.post("/order/create",
       await user.save();
 
       res.status(200).json({
+        success: true,
         message: "Order Created Successfully",
         orderDetails: {
           orderId: result.order_id,
@@ -93,41 +95,12 @@ router.post("/order/create",
       });
     } catch (error) {
       console.error("Error Creating Order:", error);
-      res.status(500).json({ error: "Server Error" });
+      res.status(500).json({
+        success: false,
+        message: error
+      });
     }
   });
-
-router.get("/order/check/:order_id", async (req, res) => {
-  try {
-    const { order_id } = req.params;
-    const response = await fetch(
-      `https://api.cashfree.com/pg/orders/${order_id}`,
-      {
-        method: "GET",
-        headers: {
-          "x-api-version": "2025-01-01",
-          "x-client-id": ID,
-          "x-client-secret": SECRET,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    const result = await response.json();
-    if (!response.ok) {
-      console.error("Failed to fetch order:", result);
-      return res
-        .status(400)
-        .json({ error: result.message || "Unable to fetch order details." });
-    }
-    return res
-      .status(200)
-      .json({ status: String(result.order_status).toLowerCase() });
-  } catch (error) {
-    console.error("Error checking order status:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-});
 
 router.patch("/order/terminate/:order_id", async (req, res) => {
   try {
@@ -161,91 +134,73 @@ router.patch("/order/terminate/:order_id", async (req, res) => {
   }
 });
 
+router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: No user data in token"
+      });
+    }
+    const user = await User.findById(req.user.userId).select();
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "No Such User"
+      });
+    }
+    const { order_id } = req.params;
+    const { status } = req.body;
+    const allowedStatuses = ["Pending", "Completed", "Failed"];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Allowed: ${allowedStatuses.join(", ")}`
+      });
+    }
+    if (!Array.isArray(user.transactions)) {
+      user.transactions = [];
+    }
+    const txnIndex = user.transactions.findIndex(
+      (txn) => String(txn.oID) === String(order_id)
+    );
+    if (txnIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaction not found for this order"
+      });
+    }
+
+    // If transaction is already Completed, do not proceed
+    if (user.transactions[txnIndex].status === "Completed") {
+      return res.status(404).json({
+        success: false,
+        message: "Transaction not found for this order"
+      });
+    }
+
+    // If status is "Completed", update user.amount before updating transaction status
+    if (status === "Completed") {
+      const txn = user.transactions[txnIndex];
+      if (typeof txn.amount === "number") {
+        user.amount += Number(txn.amount);
+      }
+    }
+
+    user.transactions[txnIndex].status = status;
+
+    await user.save();
+    res.status(200).json({
+      success: true,
+      message: `Transaction ${status}`
+    });
+  } catch (err) {
+    console.error("Error updating transaction status:", err);
+    res.status(500).json({
+      success: false,
+      message: "Error updating transaction status"
+    });
+  }
+});
+
 export default router;
-
-// router.post("/create-order", authMiddleware, async (req, res) => {
-//   try {
-//     if (!req.user || !req.user.userId) {
-//       return res
-//         .status(401)
-//         .json({ message: "Unauthorized: No user data in token" });
-//     }
-
-//     const userId = req.user.userId;
-//     const { amount } = req.body;
-
-//     if (!amount || isNaN(amount) || Number(amount) <= 0) {
-//       return res.status(400).json({ error: "Invalid amount" });
-//     }
-
-//     const user = await User.findOne({ _id: userId });
-//     // deleteAllTransactions(user.mobile)
-//     // return
-
-//     if (!user) {
-//       return res.status(404).json({ error: "User not found" });
-//     }
-
-//     const orderId = `ORDER_${Date.now()}`;
-//     const transactionId = `TXN_${uuidv4()}`;
-
-//     user.transactions.push({
-//       TID: transactionId,
-//       OID: orderId,
-//       amount: amount,
-//       status: "PENDING",
-//     });
-
-//     await user.save();
-
-//     const orderRequest = {
-//       order_id: orderId,
-//       order_amount: amount,
-//       order_currency: "INR",
-//       customer_details: {
-//         customer_id: user._id,
-//         customer_name: user.name,
-//         customer_phone: user.mobile,
-//       },
-//       order_meta: {
-//         return_url: `${FRONT
-//           .replace("http", "https")
-//           }/payment/orders/${orderId}`,
-//       },
-//     };
-
-//     const response = await fetch("https://api.cashfree.com/pg/orders", {
-//       method: "POST",
-//       headers: {
-//         "x-api-version": "2025-01-01",
-//         "x-client-id": ID,
-//         "x-client-secret": SECRET,
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify(orderRequest),
-//     });
-
-//     const result = await response.json();
-
-//     if (result.order_status === "ACTIVE") {
-//       res.status(200).json({
-//         message: "Order created successfully",
-//         orderDetails: {
-//           orderId: result.order_id,
-//           orderAmount: result.order_amount,
-//           createdAt: result.created_at,
-//           paymentSessionId: result.payment_session_id,
-//         },
-//       });
-//     } else {
-//       res.status(400).json({
-//         error: "Failed to create order",
-//         details: result.message || "Unknown error occurred.",
-//       });
-//     }
-//   } catch (error) {
-//     console.error("Error creating order:", error);
-//     res.status(500).json({ error: "Server error" });
-//   }
-// });
-// export default router;
