@@ -23,6 +23,12 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
         if (!Array.isArray(user.playerPortfolios)) {
             user.playerPortfolios = [];
         }
+        if (user.amount < quantity * price) {
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient balance, Balance ₹${user.amount}`,
+            });
+        }
         // Normalize for comparison
         const playerIdStr = String(player.batsman_id).trim();
         const matchIdStr = String(match_id).trim();
@@ -70,6 +76,13 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
             };
             user.playerPortfolios.push(playerPortfolio);
         }
+
+        const amountToDeduct = quantity * price;
+        if (typeof user.amount === "undefined" || isNaN(Number(user.amount))) {
+            user.amount = 0;
+        }
+        user.amount = Number(user.amount) - amountToDeduct;
+
         await user.save();
 
         res.status(200).json({
@@ -139,6 +152,13 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
             });
         }
         let soldMessage = "";
+        // Calculate the amount to add to user's amount
+        const amountToAdd = qtyToSell * sellPrice;
+        if (typeof user.amount === "undefined" || isNaN(Number(user.amount))) {
+            user.amount = 0;
+        }
+        user.amount = Number(user.amount) + amountToAdd;
+
         if (qtyToSell === quantityHeld) {
             // Sell the entire holding as before
             portfolio.soldPrice = price;
@@ -168,6 +188,8 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
         res.status(200).json({
             success: true,
             message: soldMessage,
+            amountAdded: amountToAdd,
+            newAmount: user.amount
         });
     } catch (err) {
         console.error("error in selling player stock:", err);
