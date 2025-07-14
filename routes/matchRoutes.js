@@ -1,7 +1,8 @@
 import express from "express";
 import axios from "axios";
 import cron from "node-cron";
-import { update_scheduledmatches, update_livematches, update_livescores, update_competitions } from '../services/cricket.js';
+import { competitions, scorecards, todays } from "../services/cricket.js";
+
 
 import dotenv from "dotenv";
 import {
@@ -84,37 +85,24 @@ const fetchAndStoreAllMatches = async () => {
 };
 
 // Schedule to run at 12:05 PM every day
-cron.schedule("5 0 * * *", () => {
-  console.log("⏰ Running scheduled job to fetch and store matches...");
-  fetchAndStoreAllMatches();
-  deleteOldOtpRequests();
-  deleteOldReferrals();
-});
-
-// // once a week (Sunday midnight)
-// cron.schedule('0 0 * * 0', () => {
-//   console.log('Updating Scheduled Matches...');
-//   update_scheduledmatches();
+// cron.schedule("5 0 * * *", () => {
+//   console.log("⏰ Running scheduled job to fetch and store matches...");
+//   fetchAndStoreAllMatches();
+//   deleteOldOtpRequests();
+//   deleteOldReferrals();
 // });
 
-// // once a day (midnight)
-// cron.schedule('0 0 * * *', () => {
-//   console.log('Updating Live Matches...');
-//   update_livematches();
+// once a week (Sunday midnight)
+// cron.schedule('0 0 * * 0', () => {
+//   competitions()
 // });
 
 // // every minute
-// cron.schedule('* * * * *', () => {
-//   console.log('Updating Live Scores...');
-//   update_livescores();
-// update_livescorecards()
+// cron.schedule('*/5 * * * * *', () => {
+//   todays()
+//   scorecards()
 // });
 
-// // every year
-// cron.schedule('0 0 1 1 *', () => {
-//   console.log('Updating Competitions...');
-//   update_competitions();
-// });
 
 
 // Route to get the count of stored matches

@@ -1,4 +1,4 @@
-import { MatchScore } from "../models/MatchScore.js";
+// import { MatchScore } from "../models/MatchScore.js";
 import { User } from "../models/User.js";
 import { fetchMatchScore } from "../routes/matchScores.js";
 

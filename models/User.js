@@ -54,46 +54,42 @@ const UserSchema = new mongoose.Schema({
       },
     },
   ],
-  // User Portfolio Schema
-  portfolio: [
+
+  // Player Portfolios
+  playerPortfolios: [
     {
       matchId: { type: String },
-      playerId: { type: String }, // Reference to the player
+      team: { type: String },
+
+      playerId: { type: String },
       playerName: { type: String },
-      team: { type: String }, // Team of the player
-      initialPrice: { type: String },
-      transactions: [
-        {
-          type: { type: String, enum: ["buy", "sell"] }, // Transaction type
-          quantity: { type: Number }, // Number of stocks bought/sold
-          price: { type: Number }, // Price per stock at transaction time
-          timestamp: { type: Date, default: Date.now }, // When the transaction occurred
-          autoSold: { type: Boolean, default: false }, // Whether it was auto-sold
-          reason: { type: String }, // Reason for auto-selling (out, innings complete, match complete)
-        },
-      ],
-      currentHoldings: { type: Number }, // Current number of stocks held
+
+      quantity: { type: String },
+      boughtPrice: { type: String },
+      soldPrice: { type: String },
+      profit: { type: String },
+      profitPercentage: { type: String },
+      status: { type: String },
+      reason: { type: String },
+      timestamp: { type: String },
     },
   ],
-  // teamportfolio
 
-  teamPortfolio: [
+  // Team Portfolio
+  teamPortfolios: [
     {
       matchId: { type: String },
-      teamId: { type: String }, // A unique identifier for the team
+      team: { type: String },
       teamName: { type: String },
-      initialPrice: { type: String },
-      transactions: [
-        {
-          type: { type: String, enum: ["buy", "sell"] },
-          quantity: { type: Number },
-          price: { type: Number },
-          timestamp: { type: Date, default: Date.now },
-          autoSold: { type: Boolean, default: false },
-          reason: { type: String },
-        },
-      ],
-      currentHoldings: { type: Number },
+
+      quantity: { type: String },
+      boughtPrice: { type: String },
+      soldPrice: { type: String },
+      profit: { type: String },
+      profitPercentage: { type: String },
+      status: { type: String },
+      reason: { type: String },
+      timestamp: { type: String },
     },
   ],
 });

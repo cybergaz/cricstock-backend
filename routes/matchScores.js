@@ -1,5 +1,4 @@
 import express from "express";
-import { MatchScore } from "../models/MatchScore.js";
 import { User } from "../models/User.js";
 import axios from "axios";
 import dotenv from "dotenv";
@@ -360,7 +359,7 @@ export function setupSocketConnections() {
       }
     }
 
-    console.log("Socket connections setup complete");
+    console.log("[SC] : Connected");
   } catch (error) {
     console.error("Error setting up socket connections:", error);
   }

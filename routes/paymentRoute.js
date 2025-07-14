@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-// import authMiddleware from "../middlewares/authMiddleware";
+import authMiddleware from "../middlewares/authMiddleware.js";
 import { User } from "../models/User.js"
 
 const router = express.Router();
@@ -17,54 +17,39 @@ const deleteAllTransactions = async (mobile) => {
 };
 
 router.post("/order/create",
-  // authMiddleware,
+  authMiddleware,
   async (req, res) => {
     try {
-      // if (!req.user || !req.user.userId) {
-      //   return res
-      //     .status(401)
-      //     .json({ message: "Unauthorized: No user data in token" });
-      // }
+      if (!req.user || !req.user.userId) {
+        return res
+          .status(401)
+          .json({ message: "Unauthorized: No user data in token" });
+      }
 
-      // const userId = req.user.userId;
+      const userId = req.user.userId;
 
       const { amount } = req.body;
 
-      // const user = await User.findOne({ _id: userId });
+      const user = await User.findOne({ _id: userId });
 
       // deleteAllTransactions(user.mobile)
       // return
-
-      // if (!user) {
-      //   return res.status(404).json({ error: "User not found" });
-      // }
+      // console.log(user)
+      // return
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
       const orderId = `ORDER_${Date.now()}`;
 
-
-      // {
-      //   customer_id = "7112AAA812234",
-      //     customer_email = "john@cashfree.com",
-      //     customer_phone = "9908734801",
-      //     customer_name = "John Doe",
-      //     customer_bank_account_number = "1518121112",
-      //     customer_bank_ifsc = "XITI0000001",
-      //     customer_bank_code = 3333,
-      //     customer_uid = "54deabb4-ba45-4a60-9e6a-9c016fe7ab10"
-      // }
-      
       const orderRequest = {
         order_id: orderId,
         order_amount: amount * 100,
         order_currency: "INR",
         customer_details: {
-          customer_id: "123",
-          customer_name: "dhruv",
-          customer_phone: "1111111111",
-          // customer_id: userId,
-          // customer_name: user.name,
-          // customer_phone: user.mobile,
-
+          customer_id: String(userId),
+          customer_name: String(user.name),
+          customer_phone: String(user.mobile) || String(user.email),
         },
         order_meta: {
           return_url: `${FRONT
@@ -86,16 +71,16 @@ router.post("/order/create",
 
       const result = await response.json();
 
-      // const newTransaction = {
-      //   tID: `TXN_${Date.now()}`,
-      //   oID: `ODR_${Date.now()}`,
-      //   amount: amount,
-      //   txnDate: new Date(),
-      // };
+      const newTransaction = {
+        tID: `TXN_${Date.now()}`,
+        oID: `ODR_${Date.now()}`,
+        amount: amount,
+        txnDate: new Date(),
+      };
 
-      // user.transactions.push(newTransaction);
+      user.transactions.push(newTransaction);
 
-      // await user.save();
+      await user.save();
 
       res.status(200).json({
         message: "Order Created Successfully",
