@@ -41,13 +41,13 @@ router.post("/send-otp", async (req, res) => {
     if (!resetPassword) {
       let result = await findUserByPhone(mobile);
       if (result.success) {
-        console.log("otp request for reset password")
+        // console.log("otp request for reset password")
         res.status(409).json({ message: "User already exists" });
         return
       }
     }
 
-    console.log("otp request for new user signup")
+    // console.log("otp request for new user signup")
     let data = await findOtpByPhone(mobile)
     if (data.code === 200) {
       let result = await OtpRequest.deleteOne({ phone: mobile })
@@ -71,14 +71,38 @@ router.post("/send-otp", async (req, res) => {
 
     console.log("sending otp via twilio")
     // Send OTP via Twilio
-    const message = await twilioClient.messages.create({
-      body: `Your OTP for Cricstock is: ${gen_otp}`,
-      from: twilioNumber,
-      to: formattedMobile // Use formatted number
-    });
-    console.log("OTP sent via Twilio:", message.body, " to ", message.to);
+    // twilioClient.messages.create({
+    //   body: `Your OTP for Cricstock is: ${gen_otp}`,
+    //   from: twilioNumber,
+    //   to: formattedMobile // Use formatted number
+    // })
+    //   .then(() => console.log("SMS sent"))
+    //   .catch(console.error);
+    function timeoutAfter(ms) {
+      return new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout")), ms);
+      });
+    }
 
-    res.status(200).json({ message: "OTP sent successfully" });
+    try {
+      await Promise.race([
+        twilioClient.messages.create({
+          body: `Your OTP for Cricstock is: ${gen_otp}`,
+          from: twilioNumber,
+          to: formattedMobile // Use formatted number
+        }),
+        timeoutAfter(3000),
+      ]);
+
+      res.status(200).json({ success: true, message: "OTP sent successfully" });
+
+    } catch (err) {
+      console.error("Twilio failed", err.message);
+      res.status(500).json({ success: false, message: "Could not send OTP. Try again." });
+    }
+    console.log("OTP sent via Twilio...");
+
+    // res.status(200).json({ message: "OTP sent successfully" });
 
   } catch (err) {
     console.error("Error sending OTP:", err);
