@@ -5,8 +5,6 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import http from "http";
 import { initializeSocket } from "./SocketService/socket.js";
-import { setupSocketConnections } from "./routes/matchScores.js";
-import serverless from "serverless-http";
 
 dotenv.config();
 
@@ -72,13 +70,10 @@ app.get("/", (req, res) => {
   res.send("Cricket Betting App API is running...");
 });
 
-setupSocketConnections();
 
 // Start the Server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   // startTrackingUserPortfolioMatches();
   console.log(`[SR] : Connected : ${PORT}`);
 });
-
-export default serverless(server)
