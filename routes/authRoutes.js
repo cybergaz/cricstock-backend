@@ -29,7 +29,6 @@ const deleteAllReferrals = async (mobile) => {
 // Send OTP
 router.post("/send-otp", async (req, res) => {
   const { mobile, resetPassword } = req.body;
-  console.log("recieved data:", mobile, resetPassword)
 
   // Validate mobile number is provided
   if (!mobile) {
@@ -41,17 +40,15 @@ router.post("/send-otp", async (req, res) => {
 
     if (!resetPassword) {
       let result = await findUserByPhone(mobile);
-      // console.log("User data:", user);
       if (result.success) {
-        console.log("otp request for new user signup")
+        console.log("otp request for reset password")
         res.status(409).json({ message: "User already exists" });
         return
       }
     }
-    console.log("otp request for reset password")
 
+    console.log("otp request for new user signup")
     let data = await findOtpByPhone(mobile)
-    console.log("data: ", data)
     if (data.code === 200) {
       let result = await OtpRequest.deleteOne({ phone: mobile })
       if (result.deletedCount > 0) {
@@ -60,24 +57,26 @@ router.post("/send-otp", async (req, res) => {
     }
 
     const formattedMobile = mobile.startsWith('+91') ? mobile : `+91${mobile}`;
-    console.log("Formatted Mobile Number:", formattedMobile);
-    // console.log("checkpoint 1")
     // Save new OTP record
+
+    console.log("setting otp in db")
     const otp = new OtpRequest({
       phone: formattedMobile,
       otp: gen_otp
     });
+    console.log("otp created in db", gen_otp)
 
     await otp.save();
 
 
-    // console.log("checkpoint 2")
+    console.log("sending otp via twilio")
     // Send OTP via Twilio
     const message = await twilioClient.messages.create({
-      body: `Your OTP is: ${gen_otp}`,
+      body: `Your OTP for Cricstock is: ${gen_otp}`,
       from: twilioNumber,
       to: formattedMobile // Use formatted number
     });
+    console.log("OTP sent via Twilio:", message.body, " to ", message.to);
 
     res.status(200).json({ message: "OTP sent successfully" });
 
