@@ -49,6 +49,7 @@ router.get("/get-score/:matchId", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch match scores" });
   }
 });
+
 const fetchAndStoreAllMatches = async () => {
   try {
     const response = await axios.get(
@@ -93,16 +94,15 @@ const fetchAndStoreAllMatches = async () => {
 // });
 
 // once a week (Sunday midnight)
-// cron.schedule('0 0 * * 0', () => {
-//   competitions()
-// });
+cron.schedule('0 0 * * 0', () => {
+  competitions()
+});
 
 // // every minute
-// cron.schedule('*/5 * * * * *', () => {
-//   todays()
-//   scorecards()
-// });
-
+cron.schedule('*/5 * * * * *', () => {
+  todays()
+  scorecards()
+});
 
 
 // Route to get the count of stored matches

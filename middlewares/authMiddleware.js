@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
+import { updateUserLastSeen } from '../services/actions';
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
     let token;
     // Check Authorization header
@@ -26,6 +27,8 @@ const authMiddleware = (req, res, next) => {
     }
 
     req.user = decoded; // Attach decoded user data to request
+    await updateUserLastSeen(decoded.userId)
+
     next();
   } catch (err) {
     console.error("❌ Authentication error:", err.message);

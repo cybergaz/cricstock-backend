@@ -94,7 +94,7 @@ router.post("/send-otp", async (req, res) => {
 // Verify OTP
 router.post("/verify-otp", async (req, res) => {
 
-  const { name, mobile,email, password, new_password, otp, referralCode } = req.body;
+  const { name, mobile, email, password, new_password, otp, referralCode } = req.body;
   console.log("Received Data:", name, mobile, password, new_password, otp, referralCode);
 
   try {
@@ -105,7 +105,6 @@ router.post("/verify-otp", async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    console.log("checkpoint 2")
     if (new_password) {
       // If the user is resetting their password
       const user = await User.findOne({ mobile });
@@ -116,17 +115,19 @@ router.post("/verify-otp", async (req, res) => {
       user.password = hashedPassword;
       await user.save();
 
-      console.log("checkpoint 3")
       res.status(201).json({ message: "Password reset successfully" });
       return;
     }
     // create a new user after verifying the OTP
-    console.log("creating new user...")
-    const newUser = await createNewUser(name, mobile,email, password,referralCode);
+    let newUser;
+    if (!email == "") {
+      newUser = await createNewUser(name, mobile, email, password, referralCode);
+    }
+    newUser = await createNewUser(name, mobile, null, password, referralCode);
     if (newUser.success) {
       res.status(201).json({ message: "OTP verified and NEW USER created successfully" });
-    }else if (!newUser.success && newUser.code == 403) {
-        res.status(403).json({ message: "Invalid Referral Code" });
+    } else if (!newUser.success && newUser.code == 403) {
+      res.status(403).json({ message: "Invalid Referral Code" });
     } else {
       res.status(newUser.code).json({ message: "Error Inserting New User" });
     }
@@ -178,7 +179,7 @@ router.post("/login", async (req, res) => {
     });
 
     user.isLoggedIn = true;
-    
+
     res.json({ token, message: "Login successful" });
   } catch (err) {
     res.status(500).json({ message: "Error logging in" });
@@ -186,7 +187,7 @@ router.post("/login", async (req, res) => {
 });
 
 
-router.get("/admin-login", async (req, res) => {
+router.get("/is-admin", async (req, res) => {
   const authHeader = req.header("Authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -210,7 +211,7 @@ router.get("/admin-login", async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    res.status(200).json({ message: "Admin login successful" });
+    res.status(200).json({ message: "User is Admin" });
     return
   }
   catch (err) {
@@ -429,7 +430,7 @@ router.post("/verify-mobile-otp", authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/add-referral-code',authMiddleware, async(req,res) => {
+router.post('/add-referral-code', authMiddleware, async (req, res) => {
   try {
     if (!req.user || !req.user.userId) {
       return res
@@ -437,12 +438,12 @@ router.post('/add-referral-code',authMiddleware, async(req,res) => {
         .json({ message: "Unauthorized: No user data in token" });
     }
     const userId = req.user.userId;
-    const {referralCode} = req.body;
-    if(!referralCode){
+    const { referralCode } = req.body;
+    if (!referralCode) {
       res.status(404).json({ message: "No Referral Code Found" });
     }
-    const user = await User.findOne({_id:userId});
-    if(!user){
+    const user = await User.findOne({ _id: userId });
+    if (!user) {
       res.status(404).json({ message: "No Such User Found" });
     }
     user.referralCodes.push(referralCode);

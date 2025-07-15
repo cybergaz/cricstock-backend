@@ -1,6 +1,6 @@
 // find user by transactionId
 
-import { User } from "../models/User.js";
+import { User, OtpRequest } from "../models/User.js";
 import Admin from "../models/Admin.js";
 import bcrypt from "bcryptjs";
 
@@ -254,6 +254,23 @@ function getTodayToNext7DaysRange() {
 }
 // 2025-06-03_2025-07-07
 
+const updateUserLastSeen = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return { success: false, code: 404, message: "User not found" };
+    }
+
+    user.lastSeen = new Date();
+    await user.save();
+
+    return { success: true, code: 200, data: user };
+  } catch (error) {
+    console.error("Error updating user's last seen:", error);
+    return { success: false, code: 500, message: "Error updating user's last seen" };
+  }
+}
+
 export {
   getTodayToNext7DaysRange,
   getTodayToNext1DaysRange,
@@ -265,5 +282,6 @@ export {
   mapCashfreeStatus,
   isTransactionTimedOut,
   checkIsSuperAdmin,
-  findAdminById
+  findAdminById,
+  updateUserLastSeen
 };

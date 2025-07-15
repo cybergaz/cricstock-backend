@@ -186,6 +186,156 @@ router.post('/promote-user-to-admin', authMiddleware, async (req, res) => {
 
 })
 
+router.get('/fetch-profitable-users', authMiddleware, async (req, res) => {
+  try {
+    const all_users = await User.find()
 
+    let count = 0
+
+    for (const user of all_users) {
+      const totalTransactionAmount = user.transactions.reduce((acc, transaction) => {
+        if (transaction.status !== "Completed") {
+          return acc;
+        }
+        return acc + transaction.amount;
+      }, 0);
+
+      if (user.amount > totalTransactionAmount) {
+        count++;
+      }
+    }
+
+    res.status(200).json({ count });
+  }
+  catch (err) {
+    res.status(500).json({ error: "Failed to fetch profitable users" });
+  }
+})
+
+router.get('/fetch-users-having-loss', authMiddleware, async (req, res) => {
+  try {
+    const all_users = await User.find()
+
+    let count = 0
+
+    for (const user of all_users) {
+      const totalTransactionAmount = user.transactions.reduce((acc, transaction) => {
+        if (transaction.status !== "Completed") {
+          return acc;
+        }
+        return acc + transaction.amount;
+      }, 0);
+
+      if (user.amount < totalTransactionAmount) {
+        count++;
+      }
+    }
+
+    res.status(200).json({ count });
+  }
+  catch (err) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+})
+
+
+router.get('/fetch-total-transactions', authMiddleware, async (req, res) => {
+  try {
+    const all_users = await User.find()
+
+    let totalTransactionCount = 0
+    let pendingDeposit = 0
+    let completedDeposit = 0
+    let failedDeposit = 0
+    let depositAmount = 0
+    let depositUsers = 0
+    let pendingWithdraw = 0
+    let completedWithdraw = 0
+    let failedWithdraw = 0
+    let withdrawAmount = 0
+    let withdrawUsers = 0
+
+    for (const user of all_users) {
+      const totalTransactionAmount = user.transactions.map((trx, index) => {
+        totalTransactionCount++;
+
+        if (trx.status == "Completed") {
+          if (trx.type === "Deposit") {
+            depositAmount += trx.amount;
+            completedDeposit++;
+          } else if (trx.type === "Withdraw") {
+            withdrawAmount += trx.amount;
+            completedWithdraw++;
+          }
+        }
+        if (trx.status === "Pending") {
+          if (trx.type === "Deposit") {
+            pendingDeposit++;
+          } else if (trx.type === "Withdraw") {
+            pendingWithdraw++;
+          }
+        }
+        if (trx.status === "Failed") {
+          if (trx.type === "Deposit") {
+            failedDeposit++;
+          } else if (trx.type === "Withdraw") {
+            failedWithdraw++;
+          }
+        }
+
+        if (trx.type === "Deposit" && trx.status === "Completed") {
+          depositUsers++;
+        }
+        if (trx.type === "Withdraw" && trx.status === "Completed") {
+          withdrawUsers++;
+        }
+
+      });
+
+      if (user.amount < totalTransactionAmount) {
+        count++;
+      }
+    }
+
+    res.status(200).json({
+      data: {
+        totalTransactionCount,
+        pendingDeposit,
+        completedDeposit,
+        failedDeposit,
+        depositAmount,
+        depositUsers,
+        pendingWithdraw,
+        completedWithdraw,
+        failedWithdraw,
+        withdrawAmount,
+        withdrawUsers
+      }
+    });
+  }
+  catch (err) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+})
+
+router.get('/fetch-inactive-users', authMiddleware, async (req, res) => {
+  try {
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const inactiveUserPhones = await User.find(
+      { lastSeen: { $lt: twentyFourHoursAgo } },
+      { phone: 1, _id: 0 }  // Only return phone numbers, omit _id
+    );
+
+    const count = inactiveUserPhones.length;
+    console.log("Inactive Users Count:", inactiveUserPhones);
+
+    res.status(200).json({ count });
+  }
+  catch (err) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+})
 
 export default router;
