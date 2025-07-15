@@ -188,7 +188,8 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
     }
 
     user.transactions[txnIndex].status = status;
-
+    user.transactions[txnIndex].date = new Date();
+    user.lastSeen = new Date();
     await user.save();
     res.status(200).json({
       success: true,
