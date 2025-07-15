@@ -11,6 +11,8 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ["marketing", "financial", "super_admin", ""], default: "" },
 
   googleId: { type: String, unique: true, sparse: true },
+  // The 'sparse: true' option allows multiple documents to have a null or undefined value for 'email' 
+  // without violating the unique constraint. Uniqueness is only enforced for documents where 'email' is set.
   email: { type: String, unique: true, sparse: true },
 
   lastSeen: { type: Date, default: Date.now() },

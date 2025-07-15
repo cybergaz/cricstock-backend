@@ -1,6 +1,7 @@
 import express from "express";
 import authMiddleware from "../middlewares/authMiddleware.js"
 import { User } from "../models/User.js";
+import { Company } from "../models/Company.js";
 const router = express.Router();
 
 router.post("/buy-player", authMiddleware, async (req, res) => {
@@ -19,7 +20,18 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
             });
         }
 
+        let company = await Company.findOne({ name: "cricstoick11" });
+        if (!company) {
+            company = new Company({
+                name: "cricstoick11",
+                netAmount: 0
+            });
+            await company.save();
+        }
         const { player, price, quantity, match_id } = req.body;
+        const onePercent = Number(quantity) * Number(price) * 0.01;
+        company.netAmount += onePercent
+        await company.save();
         if (!Array.isArray(user.playerPortfolios)) {
             user.playerPortfolios = [];
         }
@@ -157,6 +169,25 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
         if (typeof user.amount === "undefined" || isNaN(Number(user.amount))) {
             user.amount = 0;
         }
+        // Calculate profit for this sell
+        let profitOnSell = (sellPrice - buyPrice) * qtyToSell;
+        let companyShare = 0;
+        if (profitOnSell > 0) {
+            companyShare = profitOnSell * 0.05;
+        }
+        // Deduct company share from amount to add to user
+        const amountToAddAfterCompany = amountToAdd - companyShare;
+        user.amount = Number(user.amount) + amountToAddAfterCompany;
+
+        if (companyShare > 0) {
+            let company = await Company.findOne({});
+            if (!company) {
+                company = new Company({ name: "Main", netAmount: 0 });
+            }
+            company.netAmount += companyShare;
+            await company.save();
+        }
+
         user.amount = Number(user.amount) + amountToAdd;
 
         if (qtyToSell === quantityHeld) {
