@@ -18,7 +18,7 @@ const io = initializeSocket(server);
 app.use(express.json());
 app.use(
   cors({
-    origin: "*",
+    origin: "https://www.cricstock11.com",
     methods: "GET,POST,PUT,DELETE,PATCH",
     credentials: true,
   })
@@ -73,7 +73,7 @@ app.get("/", (req, res) => {
 
 // Start the Server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, "0.0.0.0", () => {
+server.listen(PORT, () => {
   // startTrackingUserPortfolioMatches();
   console.log(`[SR] : Connected : ${PORT}`);
 });
