@@ -106,7 +106,7 @@ router.post("/send-otp", async (req, res) => {
     // }
     console.log("OTP sent via Twilio...");
 
-    // res.status(200).json({ message: "OTP sent successfully" });
+    res.status(200).json({ message: "OTP sent successfully" });
 
   } catch (err) {
     console.error("Error sending OTP:", err);
