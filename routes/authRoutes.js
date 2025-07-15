@@ -71,35 +71,39 @@ router.post("/send-otp", async (req, res) => {
 
     console.log("sending otp via twilio")
     // Send OTP via Twilio
-    // twilioClient.messages.create({
-    //   body: `Your OTP for Cricstock is: ${gen_otp}`,
-    //   from: twilioNumber,
-    //   to: formattedMobile // Use formatted number
-    // })
-    //   .then(() => console.log("SMS sent"))
-    //   .catch(console.error);
-    function timeoutAfter(ms) {
-      return new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Timeout")), ms);
-      });
-    }
+    // fire and forget (no error handling)
+    // **** DANGER ****: This is not a good practice, as it can lead to silent failures.
+    twilioClient.messages.create({
+      body: `Your OTP for Cricstock is: ${gen_otp}`,
+      from: twilioNumber,
+      to: formattedMobile // Use formatted number
+    })
+      .then(() => console.log("SMS sent"))
+      .catch(console.error);
 
-    try {
-      await Promise.race([
-        twilioClient.messages.create({
-          body: `Your OTP for Cricstock is: ${gen_otp}`,
-          from: twilioNumber,
-          to: formattedMobile // Use formatted number
-        }),
-        timeoutAfter(3000),
-      ]);
-
-      res.status(200).json({ success: true, message: "OTP sent successfully" });
-
-    } catch (err) {
-      console.error("Twilio failed", err.message);
-      res.status(500).json({ success: false, message: "Could not send OTP. Try again." });
-    }
+    // handle Twilio errors with a timeout (but it's not working because it always times out)
+    // function timeoutAfter(ms) {
+    //   return new Promise((_, reject) => {
+    //     setTimeout(() => reject(new Error("Timeout")), ms);
+    //   });
+    // }
+    //
+    // try {
+    //   await Promise.race([
+    //     twilioClient.messages.create({
+    //       body: `Your OTP for Cricstock is: ${gen_otp}`,
+    //       from: twilioNumber,
+    //       to: formattedMobile // Use formatted number
+    //     }),
+    //     timeoutAfter(3000),
+    //   ]);
+    //
+    //   res.status(200).json({ success: true, message: "OTP sent successfully" });
+    //
+    // } catch (err) {
+    //   console.error("Twilio failed", err.message);
+    //   res.status(500).json({ success: false, message: "Could not send OTP. Try again." });
+    // }
     console.log("OTP sent via Twilio...");
 
     // res.status(200).json({ message: "OTP sent successfully" });
