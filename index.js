@@ -21,7 +21,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://www.cricstock11.com"],
+    origin: ["http://localhost:3000", "https://www.cricstock11.com", "https://cricket-frontend-nextjs-git-auth-flow-impl-cybergazs-projects.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
     allowedHeaders: ["Content-type", "Authorization", "Set-Cookie"],
