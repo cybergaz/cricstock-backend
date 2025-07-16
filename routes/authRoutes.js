@@ -18,6 +18,18 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
 const twilioClient = twilio(accountSid, authToken);
 
+// Helper function for cookie options
+const getCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction, // Only secure in production (HTTPS required)
+    sameSite: isProduction ? 'None' : 'Lax', // None for cross-origin in production
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/"
+  };
+};
+
 const generateReferralCode = (name) => {
   return `CRST-${name.split(' ')[0].slice(0, 3)}-${Math.floor(10000 + Math.random() * 90000).toString()}`
 }
@@ -202,13 +214,9 @@ router.post("/login", async (req, res) => {
     });
 
     // Set httpOnly cookie for authentication
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true, // Required for cross-origin requests
-      sameSite: 'None', // Required for cross-origin requests
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/"
-    });
+    const cookieOptions = getCookieOptions();
+    console.log('🍪 Login: Setting cookie with options:', cookieOptions);
+    res.cookie('token', token, cookieOptions);
 
     res.json({ 
       success: true,
@@ -321,13 +329,9 @@ router.post("/google-login", async (req, res) => {
 
 
     // Set httpOnly cookie for authentication
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true, // Required for cross-origin requests
-      sameSite: 'None', // Required for cross-origin requests
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/"
-    });
+    const cookieOptions = getCookieOptions();
+    console.log('🍪 Google Login: Setting cookie with options:', cookieOptions);
+    res.cookie('token', token, cookieOptions);
 
     res.json({ 
       success: true,
@@ -539,13 +543,10 @@ router.post('/add-referral-code', authMiddleware, async (req, res) => {
 // Logout endpoint
 router.post('/logout', (req, res) => {
   try {
-    // Clear httpOnly cookie
-    res.clearCookie('token', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'None',
-      path: '/'
-    });
+    // Clear httpOnly cookie with same options used to set it
+    const cookieOptions = getCookieOptions();
+    console.log('🍪 Logout: Clearing cookie with options:', cookieOptions);
+    res.clearCookie('token', cookieOptions);
     
     res.json({ 
       success: true,

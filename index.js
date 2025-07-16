@@ -21,11 +21,31 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://www.cricstock11.com", "https://cricket-frontend-nextjs-git-auth-flow-impl-cybergazs-projects.vercel.app"],
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    origin: [
+      "http://localhost:3000",
+      "http://192.168.1.13:3000", 
+      "https://www.cricstock11.com",
+      "https://cricstock11.com",
+      "https://cricket-frontend-nextjs-git-auth-flow-impl-cybergazs-projects.vercel.app"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-type", "Authorization", "Set-Cookie"],
-    preflightContinue: false
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Set-Cookie",
+      "Accept",
+      "Origin",
+      "X-Requested-With",
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-platform",
+      "User-Agent",
+      "Referer"
+    ],
+    exposedHeaders: ["Set-Cookie"],
+    preflightContinue: false,
+    optionsSuccessStatus: 200
   })
 );
 app.use(
