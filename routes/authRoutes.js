@@ -118,7 +118,6 @@ router.post("/send-otp", async (req, res) => {
 router.post("/verify-otp", async (req, res) => {
 
   const { name, mobile, email, password, new_password, otp, referralCode } = req.body;
-  // console.log("Received Data:", name, mobile, password, new_password, otp, referralCode);
 
   try {
     const data = await OtpRequest.findOne({ phone: mobile });
@@ -214,6 +213,40 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Error logging in" });
   }
 });
+
+router.get("/is-admin", async (req, res) => {
+  const authHeader = req.header("Authorization");
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Access denied. No token provided." });
+  }
+
+  try {
+    const token = authHeader.split(" ")[1];
+
+    // Verify JWT Token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+
+    // Find user by ID in MongoDB
+    const user = await User.findOne({ _id: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.isAdmin) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    res.status(200).json({ message: "User is Admin" });
+    return
+  }
+  catch (err) {
+    console.error("❌ Error fetching user data:", err);
+    res.status(500).json({ message: "Error fetching user data" });
+  }
+}
+)
 
 router.post("/google-login", async (req, res) => {
   const { tokenId } = req.body;
