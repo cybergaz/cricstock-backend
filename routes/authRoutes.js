@@ -207,6 +207,7 @@ router.post("/login", async (req, res) => {
         secure: true,
         sameSite: 'None',
         maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
       })
       .json({ token, message: "Login successful" });
   } catch (err) {
@@ -312,6 +313,7 @@ router.post("/google-login", async (req, res) => {
         secure: true,
         sameSite: 'None',
         maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
       })
       .json({ token, message: "Google Sign-In successful" });
   } catch (error) {
