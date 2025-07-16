@@ -201,15 +201,28 @@ router.post("/login", async (req, res) => {
       expiresIn: "7d",
     });
 
-    res.cookie('token', token,
-      {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'None',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: "/",
-      })
-      .json({ token, message: "Login successful" });
+    // Set httpOnly cookie for authentication
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true, // Required for cross-origin requests
+      sameSite: 'None', // Required for cross-origin requests
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/"
+    });
+
+    res.json({ 
+      success: true,
+      message: "Login successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        mobile: user.mobile,
+        email: user.email,
+        isVerified: user.isVerified,
+        amount: user.amount
+      }
+      // Note: Token is set as HTTP-only cookie, not in response body
+    });
   } catch (err) {
     res.status(500).json({ message: "Error logging in" });
   }
@@ -307,15 +320,28 @@ router.post("/google-login", async (req, res) => {
     });
 
 
-    res.cookie('token', token,
-      {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'None',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: "/",
-      })
-      .json({ token, message: "Google Sign-In successful" });
+    // Set httpOnly cookie for authentication
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true, // Required for cross-origin requests
+      sameSite: 'None', // Required for cross-origin requests
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/"
+    });
+
+    res.json({ 
+      success: true,
+      message: "Google Sign-In successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        mobile: user.mobile,
+        email: user.email,
+        isVerified: user.isVerified,
+        amount: user.amount
+      }
+      // Note: Token is set as HTTP-only cookie, not in response body
+    });
   } catch (error) {
     console.error("Google Authentication Error:", error);
     res
@@ -509,5 +535,29 @@ router.post('/add-referral-code', authMiddleware, async (req, res) => {
     res.status(500).json({ message: error });
   }
 })
+
+// Logout endpoint
+router.post('/logout', (req, res) => {
+  try {
+    // Clear httpOnly cookie
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'None',
+      path: '/'
+    });
+    
+    res.json({ 
+      success: true,
+      message: 'Logged out successfully' 
+    });
+  } catch (error) {
+    console.error('❌ Logout error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error logging out' 
+    });
+  }
+});
 
 export default router;

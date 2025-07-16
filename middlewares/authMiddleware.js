@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { updateUserLastSeen } from '../services/actions';
+import { updateUserLastSeen } from '../services/actions.js';
 
 const authMiddleware = async (req, res, next) => {
   const token = req.cookies.token;
