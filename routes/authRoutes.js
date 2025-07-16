@@ -196,77 +196,24 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
-    res.cookie('token', token,
-      {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'None',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: "/",
-      })
-      .json({ token, message: "Login successful" });
+    res.status(200).json({ token, message: "Login successful" });
+
+    // res.cookie('token', token,
+    //   {
+    //     httpOnly: true,
+    //     secure: true,
+    //     sameSite: 'None',
+    //     maxAge: 7 * 24 * 60 * 60 * 1000,
+    //   })
+    //   .json({ token, message: "Login successful" });
   } catch (err) {
     res.status(500).json({ message: "Error logging in" });
   }
 });
-
-
-// user info
-router.get("/whoami", authMiddleware, async (req, res) => {
-
-  try {
-    const user = await User.findOne({ _id: req.user.userId });
-
-    if (!user) {
-      res.status(400).json({ message: "User not found" });
-      return
-    }
-
-    res.status(200).json({ user, message: "User Found" });
-  } catch (err) {
-    res.status(500).json({ message: "Error finding user" });
-  }
-});
-
-
-router.get("/is-admin", async (req, res) => {
-  const authHeader = req.header("Authorization");
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Access denied. No token provided." });
-  }
-
-  try {
-    const token = authHeader.split(" ")[1];
-
-    // Verify JWT Token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
-
-    // Find user by ID in MongoDB
-    const user = await User.findOne({ _id: userId });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (!user.isAdmin) {
-      return res.status(403).json({ message: "Access denied" });
-    }
-
-    res.status(200).json({ message: "User is Admin" });
-    return
-  }
-  catch (err) {
-    console.error("❌ Error fetching user data:", err);
-    res.status(500).json({ message: "Error fetching user data" });
-  }
-}
-)
 
 router.post("/google-login", async (req, res) => {
   const { tokenId } = req.body;
@@ -323,6 +270,69 @@ router.post("/google-login", async (req, res) => {
       .json({ message: "Google authentication failed", error: error.message });
   }
 });
+
+// user info
+router.get("/whoami", authMiddleware, async (req, res) => {
+
+  try {
+    const user = await User.findOne({ _id: req.user.userId });
+
+    if (!user) {
+      res.status(400).json({ message: "User not found" });
+      return
+    }
+
+    res.status(200).json({ user, message: "User Found" });
+  } catch (err) {
+    res.status(500).json({ message: "Error finding user" });
+  }
+});
+
+router.post('/logout', (req, res) => {
+
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: true,       // same as when it was set
+    sameSite: 'None',   // same as when it was set
+    path: '/',          // must match the original cookie
+  });
+
+  res.status(200).json({ message: 'Logged out' });
+});
+
+router.get("/is-admin", async (req, res) => {
+  const authHeader = req.header("Authorization");
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Access denied. No token provided." });
+  }
+
+  try {
+    const token = authHeader.split(" ")[1];
+
+    // Verify JWT Token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+
+    // Find user by ID in MongoDB
+    const user = await User.findOne({ _id: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.isAdmin) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    res.status(200).json({ message: "User is Admin" });
+    return
+  }
+  catch (err) {
+    console.error("❌ Error fetching user data:", err);
+    res.status(500).json({ message: "Error fetching user data" });
+  }
+}
+)
 
 router.post("/forgot-password/sendOtp", async (req, res) => {
   const { mobile } = req.body;

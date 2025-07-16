@@ -6,7 +6,8 @@ import helmet from "helmet";
 import http from "http";
 import { initializeSocket } from "./SocketService/socket.js";
 import cookieParser from 'cookie-parser';
-
+import cron from "node-cron";
+import { competitions, scorecards, todays } from "./services/cricket.js";
 
 dotenv.config();
 
@@ -24,8 +25,8 @@ app.use(
     origin: ["http://localhost:3000", "https://www.cricstock11.com"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
-    allowedHeaders: ["Content-type", "Authorization", "Set-Cookie"],
-    preflightContinue: false
+    allowedHeaders: ["Content-Type", "Authorization", "Set-Cookie"],
+    // preflightContinue: false
   })
 );
 app.use(
@@ -34,8 +35,6 @@ app.use(
     crossOriginEmbedderPolicy: false,
   })
 );
-
-
 
 // Connect to MongoDB
 
@@ -73,6 +72,21 @@ app.use("/cricket", cricketRoute);
 // Root Route
 app.get("/", (req, res) => {
   res.send("Cricket Betting App API is running...");
+});
+
+// once a week (Sunday midnight)
+cron.schedule('0 0 * * 0', () => {
+  competitions()
+});
+
+// // every minute
+cron.schedule('*/5 * * * * *', () => {
+  scorecards()
+});
+
+// every day
+cron.schedule('0 0 * * *', () => {
+  todays()
 });
 
 

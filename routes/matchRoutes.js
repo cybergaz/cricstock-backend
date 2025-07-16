@@ -93,20 +93,20 @@ const fetchAndStoreAllMatches = async () => {
 //   deleteOldReferrals();
 // });
 
-// once a week (Sunday midnight)
-cron.schedule('0 0 * * 0', () => {
-  competitions()
-});
-
-// // every minute
-cron.schedule('*/5 * * * * *', () => {
-  scorecards()
-});
-
-// every day
-cron.schedule('0 0 * * *', () => {
-  todays()
-});
+// // once a week (Sunday midnight)
+// cron.schedule('0 0 * * 0', () => {
+//   competitions()
+// });
+//
+// // // every minute
+// cron.schedule('*/5 * * * * *', () => {
+//   scorecards()
+// });
+//
+// // every day
+// cron.schedule('0 0 * * *', () => {
+//   todays()
+// });
 
 
 // Route to get the count of stored matches
