@@ -100,8 +100,12 @@ cron.schedule('0 0 * * 0', () => {
 
 // // every minute
 cron.schedule('*/5 * * * * *', () => {
-  todays()
   scorecards()
+});
+
+// every day
+cron.schedule('0 0 * * *', () => {
+  todays()
 });
 
 

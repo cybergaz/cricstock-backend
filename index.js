@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import http from "http";
 import { initializeSocket } from "./SocketService/socket.js";
+import cookieParser from 'cookie-parser';
+
 
 dotenv.config();
 
@@ -15,6 +17,7 @@ const server = http.createServer(app);
 const io = initializeSocket(server);
 
 // Middleware
+app.use(cookieParser());
 app.use(express.json());
 app.use(
   cors({

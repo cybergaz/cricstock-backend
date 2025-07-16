@@ -59,17 +59,14 @@ router.post("/send-otp", async (req, res) => {
     const formattedMobile = mobile.startsWith('+91') ? mobile : `+91${mobile}`;
     // Save new OTP record
 
-    console.log("setting otp in db")
     const otp = new OtpRequest({
       phone: formattedMobile,
       otp: gen_otp
     });
-    console.log("otp created in db", gen_otp)
 
     await otp.save();
 
 
-    console.log("sending otp via twilio")
     // Send OTP via Twilio
     // fire and forget (no error handling)
     // **** DANGER ****: This is not a good practice, as it can lead to silent failures.
@@ -78,7 +75,7 @@ router.post("/send-otp", async (req, res) => {
       from: twilioNumber,
       to: formattedMobile // Use formatted number
     })
-      .then(() => console.log("SMS sent"))
+      .then(() => console.log("OTP sent via Twilio..."))
       .catch(console.error);
 
     // handle Twilio errors with a timeout (but it's not working because it always times out)
@@ -104,7 +101,6 @@ router.post("/send-otp", async (req, res) => {
     //   console.error("Twilio failed", err.message);
     //   res.status(500).json({ success: false, message: "Could not send OTP. Try again." });
     // }
-    console.log("OTP sent via Twilio...");
 
     res.status(200).json({ message: "OTP sent successfully" });
 
@@ -122,11 +118,11 @@ router.post("/send-otp", async (req, res) => {
 router.post("/verify-otp", async (req, res) => {
 
   const { name, mobile, email, password, new_password, otp, referralCode } = req.body;
-  console.log("Received Data:", name, mobile, password, new_password, otp, referralCode);
+  // console.log("Received Data:", name, mobile, password, new_password, otp, referralCode);
 
   try {
     const data = await OtpRequest.findOne({ phone: mobile });
-    console.log(data)
+    // console.log(data)
 
     if (!data || data.otp != otp) {
       return res.status(400).json({ message: "Invalid OTP" });
@@ -205,11 +201,34 @@ router.post("/login", async (req, res) => {
       expiresIn: "7d",
     });
 
-    user.isLoggedIn = true;
-
-    res.json({ token, message: "Login successful" });
+    res.cookie('token', token,
+      {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      })
+      .json({ token, message: "Login successful" });
   } catch (err) {
     res.status(500).json({ message: "Error logging in" });
+  }
+});
+
+
+// user info
+router.get("/whoami", authMiddleware, async (req, res) => {
+
+  try {
+    const user = await User.findOne({ _id: req.user.userId });
+
+    if (!user) {
+      res.status(400).json({ message: "User not found" });
+      return
+    }
+
+    res.status(200).json({ user, message: "User Found" });
+  } catch (err) {
+    res.status(500).json({ message: "Error finding user" });
   }
 });
 
@@ -286,7 +305,15 @@ router.post("/google-login", async (req, res) => {
       expiresIn: "7d",
     });
 
-    res.json({ token, message: "Google Sign-In successful" });
+
+    res.cookie('token', token,
+      {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      })
+      .json({ token, message: "Google Sign-In successful" });
   } catch (error) {
     console.error("Google Authentication Error:", error);
     res
