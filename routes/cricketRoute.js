@@ -1,7 +1,7 @@
 import express from "express";
 import Competitions from "../models/Competitions.js";
 import Todays from "../models/Todays.js";
-import { competitions, scorecards, todays } from "../services/cricket.js";
+import { competitions, scorecards, todays, getMatch } from "../services/cricket.js";
 import Scorecards from "../models/Scorecards.js";
 
 const router = express.Router();
@@ -50,7 +50,7 @@ router.get("/scorecard/:match", async (req, res) => {
     const { match } = req.params;
     const scorecard = await Scorecards.findOne({ match_id: match });
     if (!scorecard) {
-      return res.status(404).json({
+      return res.status(201).json({
         message: `No scorecard found for match_id: ${match}`,
         data: scorecard
       });
@@ -67,6 +67,27 @@ router.get("/scorecard/:match", async (req, res) => {
   }
 });
 
+router.get("/match/:match", async (req, res) => {
+  try {
+    const { match } = req.params;
+    const matchInfo = await getMatch(match);
+    if (!matchInfo) {
+      return res.status(404).json({
+        message: `No match info found for match_id: ${match}`,
+        data: null
+      });
+    }
+    res.status(200).json({
+      message: `Match info found for match_id: ${match}`,
+      data: matchInfo
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching match info",
+      error: error.message
+    });
+  }
+});
 // week
 // competitions()
 

@@ -273,7 +273,6 @@ export const todays = async () => {
         console.error(`[TODAYS] Error updating today's matches: ${error.message}`);
     }
 };
-
 export const scorecards = async () => {
     try {
         const ongoing_response = await axios.get(
@@ -601,3 +600,13 @@ export const scorecard = async (match_id) => {
     }
 
 }
+// Utility function for finding match info
+export const getMatch = async (matchId) => {
+    try {
+        const response = await axios.get(`${baseURL}matches/${matchId}/info?token=${token}`);
+        return response.data;
+    } catch (error) {
+        console.error(`[SR] Error fetching match info for match_id: ${matchId} - ${error.message}`);
+        return null;
+    }
+};
