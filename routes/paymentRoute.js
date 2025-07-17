@@ -70,6 +70,8 @@ router.post("/order/create",
         body: JSON.stringify(orderRequest),
       });
 
+      setTimeout(() => { console.log("waiting for 5 seconds") }, 5000)
+
       const result = await response.json();
       console.log("Order Creation Result:", result);
 
