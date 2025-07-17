@@ -53,9 +53,7 @@ router.post("/order/create",
           customer_phone: String(user.mobile) || String(user.email),
         },
         order_meta: {
-          return_url: `${FRONT
-            .replace("http", "https")
-            }/wallet?payment=success&ODR=${orderId}`,
+          return_url: `${FRONT}/wallet?payment=success&ODR=${orderId}`,
         },
       };
 
@@ -70,7 +68,7 @@ router.post("/order/create",
         body: JSON.stringify(orderRequest),
       });
 
-      setTimeout(() => { console.log("waiting for 5 seconds") }, 5000)
+      // setTimeout(() => { console.log("waiting for 5 seconds") }, 5000)
 
       const result = await response.json();
       console.log("Order Creation Result:", result);
