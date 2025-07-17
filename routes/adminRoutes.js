@@ -2,10 +2,11 @@ import express from 'express';
 import { User } from '../models/User.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import { checkIsSuperAdmin } from "../services/actions.js"
+import { Company } from '../models/Company.js';
 
 const router = express.Router();
 
-router.get('/total-users', async (req, res) => {
+router.get('/total-registered-users', async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
 
@@ -22,35 +23,64 @@ router.get('/total-users', async (req, res) => {
   }
 });
 
+// using sockets
+// router.get('/total-active-users', async (req, res) => {
+//   try {
+//     const totalUsers = await User.countDocuments();
+//
+//     res.status(200).json({
+//       message: 'Total registered users count retrieved',
+//       count: totalUsers
+//     });
+//   } catch (error) {
+//     console.error('Error counting registered Users:', error);
+//     res.status(500).json({
+//       message: 'Failed to count registered users',
+//       error: error.message
+//     });
+//   }
+// })
+
+// using lastSeen field
 router.get('/total-active-users', async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
+    // fetch all users and filter based on lastSeen where lastSeen is within the last 10 minute
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const activeUsers = await User.countDocuments({
+      lastSeen: { $gte: tenMinutesAgo }
+    });
 
     res.status(200).json({
-      message: 'Total registered users count retrieved',
-      count: totalUsers
+      message: 'Total active users count retrieved',
+      count: activeUsers
     });
   } catch (error) {
-    console.error('Error counting registered Users:', error);
+    console.error('Error counting active Users:', error);
     res.status(500).json({
-      message: 'Failed to count registered users',
+      message: 'Failed to count active users',
       error: error.message
     });
   }
 })
 
-router.get('/company-statement', async (req, res) => {
+router.get('/company-statement', authMiddleware, async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
+    const company_stats = await Company.find();
+    console.log("company_stats -> ", company_stats[0])
 
     res.status(200).json({
-      message: 'Total registered users count retrieved',
-      count: totalUsers
+      message: 'Company statistics retrieved successfully',
+      data: {
+        name: company_stats[0].name,
+        totalProfits: company_stats[0].totalProfits.toFixed(2),
+        profitFromPlatformFees: company_stats[0].profitFromPlatformFees.toFixed(2),
+        profitFromProfitableCuts: company_stats[0].profitFromProfitableCuts.toFixed(2)
+      }
     });
   } catch (error) {
-    console.error('Error counting registered Users:', error);
+    console.error('Error retrieving companny stats:', error);
     res.status(500).json({
-      message: 'Failed to count registered users',
+      message: 'Failed to retrieve company statistics',
       error: error.message
     });
   }
@@ -162,13 +192,25 @@ router.post('/promote-user-to-admin', authMiddleware, async (req, res) => {
   }
 
   try {
-    const result = await User.findOneAndUpdate(
-      { _id: id },
-      { $set: { isAdmin: true, role } },
-      {
-        new: true,
-      }
-    );
+    let result;
+    if (role === "user") {
+
+      result = await User.findOneAndUpdate(
+        { _id: id },
+        { $set: { isAdmin: false, role } },
+        {
+          new: true,
+        }
+      );
+    } else {
+      result = await User.findOneAndUpdate(
+        { _id: id },
+        { $set: { isAdmin: true, role } },
+        {
+          new: true,
+        }
+      );
+    }
 
     if (!result) {
       res.status(400).send("User not found");
