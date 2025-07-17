@@ -45,7 +45,7 @@ router.post("/order/create",
 
       const orderRequest = {
         order_id: orderId,
-        order_amount: amount * 100,
+        order_amount: amount,
         order_currency: "INR",
         customer_details: {
           customer_id: String(userId),

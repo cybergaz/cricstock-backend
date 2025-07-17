@@ -289,7 +289,7 @@ export const scorecards = async () => {
     await Scorecards.deleteMany({});
 
     if (!validMatchIds.length) {
-      console.log("[SR] No Live Matches");
+      // console.log("[SR] No Live Matches");
       return;
     }
 
