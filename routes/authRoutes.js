@@ -357,7 +357,7 @@ router.get("/is-admin", async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    res.status(200).json({ message: "User is Admin" });
+    res.status(200).json({ message: "User is Admin", username: user.name });
     return
   }
   catch (err) {
