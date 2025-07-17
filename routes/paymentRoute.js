@@ -71,6 +71,7 @@ router.post("/order/create",
       });
 
       const result = await response.json();
+      console.log("Order Creation Result:", result);
 
       const newTransaction = {
         tID: txnId,
