@@ -79,15 +79,14 @@ cron.schedule('0 0 * * 0', () => {
 });
 
 // every 3 seconds
-cron.schedule('*/3 * * * * *', () => {
+cron.schedule('*/5 * * * * *', () => {
   scorecards();
-  todays();
 });
 
 // every day
-// cron.schedule('0 0 * * *', () => {
-//   todays()
-// });
+cron.schedule('*/60 * * * * *', () => {
+  todays()
+});
 
 
 // Start the Server
