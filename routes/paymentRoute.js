@@ -11,11 +11,6 @@ const SECRET = process.env.CASHFREE_SECRET;
 const URL = process.env.CASHFREE_URL;
 const FRONT = process.env.FRONTEND_URL;
 
-const deleteAllTransactions = async (mobile) => {
-  await User.updateOne({ mobile }, { $set: { transactions: [] } });
-  console.log("All recent transactions are deleted");
-};
-
 router.post("/order/create",
   authMiddleware,
   async (req, res) => {
@@ -32,10 +27,6 @@ router.post("/order/create",
 
       const user = await User.findOne({ _id: userId });
 
-      // deleteAllTransactions(user.mobile)
-      // return
-      // console.log(user)
-      // return
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -53,7 +44,7 @@ router.post("/order/create",
           customer_phone: String(user.mobile) || String(user.email),
         },
         order_meta: {
-          return_url: `${FRONT}/wallet?payment=success&ODR=${orderId}`,
+          return_url: `${FRONT}/wallet?ODR=${orderId}`,
         },
       };
 
@@ -68,10 +59,7 @@ router.post("/order/create",
         body: JSON.stringify(orderRequest),
       });
 
-      // setTimeout(() => { console.log("waiting for 5 seconds") }, 5000)
-
       const result = await response.json();
-      console.log("Order Creation Result:", result);
 
       const newTransaction = {
         tID: txnId,
@@ -151,7 +139,35 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
       });
     }
     const { order_id } = req.params;
+    const response = await fetch(
+      `${URL}orders/${order_id}`,
+      {
+        method: "GET",
+        headers: {
+          "x-api-version": "2025-01-01",
+          "x-client-id": ID,
+          "x-client-secret": SECRET,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const result = await response.json();
     const { status } = req.body;
+    const orderStatus = result.order_status;
+
+    // Possible orderStatus values: ACTIVE, PAID, EXPIRED, TERMINATED, TERMINATION_REQUESTED
+    if (orderStatus == undefined) {
+      return res.status(400).json({
+        success: false,
+        message: `No Such Transaction`
+      });
+    }
+    if (orderStatus !== "PAID") {
+      return res.status(400).json({
+        success: false,
+        message: `Payment ${orderStatus.slice(0, 1)}${orderStatus.slice(1).toLowerCase()}`
+      });
+    }
     const allowedStatuses = ["Pending", "Completed", "Failed"];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
@@ -171,7 +187,6 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
         message: "Transaction not found for this order"
       });
     }
-
     // If transaction is already Completed, do not proceed
     if (user.transactions[txnIndex].status === "Completed") {
       return res.status(404).json({
@@ -179,7 +194,33 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
         message: "Transaction not found for this order"
       });
     }
-
+    // Fetch order details from Cashfree before updating status
+    const cfResponse = await fetch(
+      `${URL}orders/${order_id}`,
+      {
+        method: "GET",
+        headers: {
+          "x-api-version": "2025-01-01",
+          "x-client-id": ID,
+          "x-client-secret": SECRET,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const cfOrder = await cfResponse.json();
+    if (!cfResponse.ok) {
+      return res.status(400).json({
+        success: false,
+        message: cfOrder.message || "Unable to fetch order details from Cashfree."
+      });
+    }
+    // Only allow marking as Completed if Cashfree order_status is PAID
+    if (status === "Completed" && cfOrder.order_status !== "PAID") {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot mark as Completed. Cashfree order status is: ${cfOrder.order_status}`
+      });
+    }
     // If status is "Completed", update user.amount before updating transaction status
     if (status === "Completed") {
       const txn = user.transactions[txnIndex];
@@ -187,7 +228,6 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
         user.amount += Number(txn.amount);
       }
     }
-
     user.transactions[txnIndex].status = status;
     user.transactions[txnIndex].date = new Date();
     user.lastSeen = new Date();

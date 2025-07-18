@@ -50,7 +50,7 @@ mongoose
 import authRoutes from "./routes/authRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import paymentRoute from "./routes/paymentRoute.js"
-import portfolioRoute from "./routes/portfolio.route.js"
+import portfolioRoute from "./routes/portfolioRoute.js"
 import adminRoute from "./routes/adminRoutes.js"
 import emailService from "./routes/emailSevice.js";
 import cricketRoute from "./routes/cricketRoute.js";
@@ -75,19 +75,19 @@ app.get("/", (req, res) => {
 });
 
 // once a week (Sunday midnight)
-cron.schedule('0 0 * * 0', () => {
-  competitions()
-});
+// cron.schedule('0 0 * * 0', () => {
+//   competitions()
+// });
 
-// // every minute
-cron.schedule('*/5 * * * * *', () => {
-  scorecards()
-});
+// // // every minute
+// cron.schedule('*/5 * * * * *', () => {
+//   scorecards()
+// });
 
-// every day
-cron.schedule('0 0 * * *', () => {
-  todays()
-});
+// // every day
+// cron.schedule('0 0 * * *', () => {
+//   todays()
+// });
 
 
 // Start the Server
