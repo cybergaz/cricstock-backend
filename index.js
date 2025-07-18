@@ -74,20 +74,19 @@ app.get("/", (req, res) => {
   res.send("Cricket Betting App API is running...");
 });
 
-// once a week (Sunday midnight)
-// cron.schedule('0 0 * * 0', () => {
-//   competitions()
-// });
+cron.schedule('0 0 * * 0', () => {
+  competitions()
+});
 
-// // // every minute
-// cron.schedule('*/5 * * * * *', () => {
-//   scorecards()
-// });
+// // every minute
+cron.schedule('*/5 * * * * *', () => {
+  scorecards()
+});
 
-// // every day
-// cron.schedule('0 0 * * *', () => {
-//   todays()
-// });
+// every day
+cron.schedule('0 0 * * *', () => {
+  todays()
+});
 
 
 // Start the Server
