@@ -81,12 +81,13 @@ cron.schedule('0 0 * * 0', () => {
 // // every minute
 cron.schedule('*/5 * * * * *', () => {
   scorecards()
+  todays()
 });
 
 // every day
-cron.schedule('0 0 * * *', () => {
-  todays()
-});
+// cron.schedule('0 0 * * *', () => {
+//   todays()
+// });
 
 
 // Start the Server
