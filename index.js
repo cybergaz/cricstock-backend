@@ -78,10 +78,10 @@ cron.schedule('0 0 * * 0', () => {
   competitions()
 });
 
-// // every minute
-cron.schedule('*/5 * * * * *', () => {
-  scorecards()
-  todays()
+// every 3 seconds
+cron.schedule('*/3 * * * * *', () => {
+  scorecards();
+  todays();
 });
 
 // every day
