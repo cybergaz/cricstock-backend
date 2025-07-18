@@ -1,11 +1,15 @@
 // find user by transactionId
 
 import { User, OtpRequest } from "../models/User.js";
-import Admin from "../models/Admin.js";
 import bcrypt from "bcryptjs";
 
 const BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const SECRET_KEY = 0xa3b1c2d3n;
+
+const deleteAllTransactions = async (mobile) => {
+  await User.updateOne({ mobile }, { $set: { transactions: [] } });
+  console.log("All recent transactions are deleted");
+};
 
 function base62Encode(num) {
   let encoded = "";
@@ -283,5 +287,6 @@ export {
   isTransactionTimedOut,
   checkIsSuperAdmin,
   findAdminById,
-  updateUserLastSeen
+  updateUserLastSeen,
+  deleteAllTransactions
 };
