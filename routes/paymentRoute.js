@@ -186,21 +186,18 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
         message: "Transaction not found for this order"
       });
     }
-    // If transaction is already Completed, do not proceed
     if (user.transactions[txnIndex].status === "Completed") {
       return res.status(404).json({
         success: false,
         message: "Transaction not found for this order"
       });
     }
-    // Only allow marking as Completed if Cashfree order_status is PAID
     if (status === "Completed" && orderStatus !== "PAID") {
       return res.status(400).json({
         success: false,
         message: `Cannot mark as Completed. Cashfree order status is: ${orderStatus}`
       });
     }
-    // If status is "Completed", update user.amount before updating transaction status
     if (status === "Completed") {
       const txn = user.transactions[txnIndex];
       if (typeof txn.amount === "number") {

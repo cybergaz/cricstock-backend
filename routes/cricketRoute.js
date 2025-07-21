@@ -1,9 +1,7 @@
 import express from "express";
 import Competitions from "../models/Competitions.js";
 import Todays from "../models/Todays.js";
-import { competitions, scorecards, todays, getMatch } from "../services/cricket.js";
 import Scorecards from "../models/Scorecards.js";
-import { Company } from "../models/Company.js";
 
 const router = express.Router();
 
@@ -29,7 +27,7 @@ router.get("/competitions", async (req, res) => {
 
 router.get("/today", async (req, res) => {
   try {
-    const todays = await Todays.find({})
+    const todays = await Todays.find({}).sort({ date_start_ist: 1 });
     if (!todays || todays.length === 0) {
       return res.status(404).json({ message: "No Matches Today" });
     }
@@ -37,7 +35,6 @@ router.get("/today", async (req, res) => {
       message: `Found ${todays.length} Matches Todays`,
       data: todays
     });
-
   } catch (error) {
     res.status(500).json({
       message: "Error fetching today's matches",
@@ -92,113 +89,5 @@ router.get("/match/:match", async (req, res) => {
     });
   }
 });
-router.get("/company", async (req, res) => {
-  try {
-    const company = await Company.findOne({ name: "cricstock11" });
-    if (!company) {
-      return res.status(404).json({
-        success: false,
-        message: "Company not found",
-        data: null
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "Company details fetched successfully",
-      data: company
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching company details",
-      error: error.message
-    });
-  }
-});
-
-// week
-// competitions()
-
-// one day
-// todays()
-
-// 5 sec
-// scorecards()
-
-
-// router.get("/live", async (req, res) => {
-//   try {
-//     const live_matches = await LiveMatches.find({});
-//     if (!live_matches || live_matches.length === 0) {
-//       return res.status(404).json({ message: "No Live Matches Found" });
-//     }
-//     res.status(200).json({
-//       message: `Found ${live_matches.length} Live Matches`,
-//       data: live_matches
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({
-//       message: "Error fetching live matches",
-//       error: error.message
-//     });
-//   }
-// });
-// router.get("/", async (req, res) => {
-//   try {
-//     const scheduled_matches = await ScheduledMatches.find({});
-//     if (!scheduled_matches || scheduled_matches.length === 0) {
-//       return res.status(404).json({ message: "No Scheduled Matches Found" });
-//     }
-//     res.status(200).json({
-//       message: `Found ${scheduled_matches.length} Scheduled Matches`,
-//       data: scheduled_matches
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({
-//       message: "Error fetching scheduled matches",
-//       error: error.message
-//     });
-//   }
-// });
-// router.get("/live/:match_id", async (req, res) => {
-//   try {
-//     const { match_id } = req.params;
-
-//     const match_data = await LiveScore.findOne({ mid: match_id });
-
-//     if (!match_data) {
-//       return res.status(404).json({ message: "No Live Score Found" });
-//     }
-
-//     res.status(200).json({ data: match_data });
-
-//   } catch (error) {
-//     res.status(500).json({
-//       message: "Error fetching match by ID",
-//       error: error.message
-//     });
-//   }
-// });
-// router.get("/scorecard/:match_id", async (req, res) => {
-//   try {
-//     const { match_id } = req.params;
-
-//     const match_data = await LiveScorecard.findOne({ match_id: match_id });
-
-//     if (!match_data) {
-//       return res.status(404).json({ message: "No Live Scorecard Found" });
-//     }
-
-//     res.status(200).json({ data: match_data });
-
-//   } catch (error) {
-//     res.status(500).json({
-//       message: "Error fetching match by ID",
-//       error: error.message
-//     });
-//   }
-// });
 
 export default router;

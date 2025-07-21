@@ -2,7 +2,6 @@ import express from "express";
 import dotenv from "dotenv";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { User } from "../models/User.js"
-import { competitions, scorecards, todays } from "../services/cricket.js";
 
 const router = express.Router();
 dotenv.config();
@@ -20,8 +19,6 @@ router.get("/data",
 
       const userId = req.user.userId;
 
-      // Exclude sensitive/unneeded fields
-      // Exclude: password, __v, any tokens, and internal fields
       const user = await User.findOne({ _id: userId })
         .select("-password -__v -resetToken -resetTokenExpiry -otp -otpExpiry");
 

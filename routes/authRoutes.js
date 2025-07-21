@@ -18,19 +18,9 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
 const twilioClient = twilio(accountSid, authToken);
 
-const generateReferralCode = (name) => {
-  return `CRST-${name.split(' ')[0].slice(0, 3)}-${Math.floor(10000 + Math.random() * 90000).toString()}`
-}
-const deleteAllReferrals = async (mobile) => {
-  await User.updateOne({ mobile }, { $set: { referralCodes: [] } });
-  console.log("All Referrals Are Refreshed");
-};
-
-// Send OTP
 router.post("/send-otp", async (req, res) => {
   const { mobile, resetPassword } = req.body;
 
-  // Validate mobile number is provided
   if (!mobile) {
     return res.status(400).json({ message: "Mobile number is required" });
   }
@@ -41,13 +31,11 @@ router.post("/send-otp", async (req, res) => {
     if (!resetPassword) {
       let result = await findUserByPhone(mobile);
       if (result.success) {
-        // console.log("otp request for reset password")
         res.status(409).json({ message: "User already exists" });
         return
       }
     }
 
-    // console.log("otp request for new user signup")
     let data = await findOtpByPhone(mobile)
     if (data.code === 200) {
       let result = await OtpRequest.deleteOne({ phone: mobile })
@@ -57,7 +45,6 @@ router.post("/send-otp", async (req, res) => {
     }
 
     const formattedMobile = mobile.startsWith('+91') ? mobile : `+91${mobile}`;
-    // Save new OTP record
 
     const otp = new OtpRequest({
       phone: formattedMobile,
@@ -66,14 +53,10 @@ router.post("/send-otp", async (req, res) => {
 
     await otp.save();
 
-
-    // Send OTP via Twilio
-    // fire and forget (no error handling)
-    // **** DANGER ****: This is not a good practice, as it can lead to silent failures.
     twilioClient.messages.create({
       body: `Your OTP for Cricstock is: ${gen_otp}`,
       from: twilioNumber,
-      to: formattedMobile // Use formatted number
+      to: formattedMobile
     })
       .then(() => console.log("OTP sent via Twilio..."))
       .catch(console.error);
@@ -114,21 +97,16 @@ router.post("/send-otp", async (req, res) => {
   }
 });
 
-// Verify OTP
 router.post("/verify-otp", async (req, res) => {
-
-  const { name, mobile, email, password, new_password, otp, referralCode } = req.body;
-
   try {
+    const { name, mobile, email, password, new_password, otp, referralCode } = req.body;
     const data = await OtpRequest.findOne({ phone: mobile });
-    // console.log(data)
 
     if (!data || data.otp != otp) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
     if (new_password) {
-      // If the user is resetting their password
       const user = await User.findOne({ mobile });
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -140,7 +118,7 @@ router.post("/verify-otp", async (req, res) => {
       res.status(201).json({ message: "Password reset successfully" });
       return;
     }
-    // create a new user after verifying the OTP
+
     let newUser;
     if (!email == "") {
       newUser = await createNewUser(name, mobile, email, password, referralCode);
@@ -224,11 +202,9 @@ router.get("/is-admin", async (req, res) => {
   try {
     const token = authHeader.split(" ")[1];
 
-    // Verify JWT Token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
 
-    // Find user by ID in MongoDB
     const user = await User.findOne({ _id: userId });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -256,7 +232,6 @@ router.post("/google-login", async (req, res) => {
   }
 
   try {
-    // Verify Google token
     const ticket = await client.verifyIdToken({
       idToken: tokenId,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -267,7 +242,7 @@ router.post("/google-login", async (req, res) => {
       return res.status(401).json({ message: "Invalid Google token" });
     }
 
-    const { email, name, sub } = ticket.getPayload(); // Extract user details
+    const { email, name, sub } = ticket.getPayload();
 
     let user = await User.findOne({ email });
 
@@ -281,7 +256,6 @@ router.post("/google-login", async (req, res) => {
       await user.save();
     }
 
-    // Generate JWT token
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
@@ -304,7 +278,6 @@ router.post("/google-login", async (req, res) => {
   }
 });
 
-// user info
 router.get("/whoami", authMiddleware, async (req, res) => {
 
   try {

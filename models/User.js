@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 const UserSchema = new mongoose.Schema({
   name: { type: String },
   mobile: { type: String, unique: true },
-  // otp: { type: String },
   isVerified: { type: Boolean, default: false },
   password: { type: String },
 
@@ -55,7 +54,6 @@ const UserSchema = new mongoose.Schema({
     },
   ],
 
-  // Player Portfolios
   playerPortfolios: [
     {
       matchId: { type: String },
@@ -75,7 +73,6 @@ const UserSchema = new mongoose.Schema({
     },
   ],
 
-  // Team Portfolio
   teamPortfolios: [
     {
       matchId: { type: String },

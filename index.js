@@ -4,20 +4,15 @@ import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
 import http from "http";
-import { initializeSocket } from "./SocketService/socket.js";
 import cookieParser from 'cookie-parser';
 import cron from "node-cron";
 import { competitions, scorecards, todays } from "./services/cricket.js";
 
 dotenv.config();
 
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-
 const app = express();
 const server = http.createServer(app);
-const io = initializeSocket(server);
 
-// Middleware
 app.use(cookieParser());
 app.use(express.json());
 app.use(
@@ -26,7 +21,6 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "Set-Cookie"],
-    // preflightContinue: false
   })
 );
 app.use(
@@ -36,8 +30,6 @@ app.use(
   })
 );
 
-// Connect to MongoDB
-
 const MONGO_URI =
   process.env.MONGO_URI
 
@@ -46,27 +38,21 @@ mongoose
   .then(() => console.log("[DB] : Connected"))
   .catch((err) => console.error("MongoDB Connection Error:", err));
 
-// Import routes after initializing socket.io
 import authRoutes from "./routes/authRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import paymentRoute from "./routes/paymentRoute.js"
 import portfolioRoute from "./routes/portfolioRoute.js"
 import adminRoute from "./routes/adminRoutes.js"
-import emailService from "./routes/emailSevice.js";
 import cricketRoute from "./routes/cricketRoute.js";
 import userRoute from "./routes/userRoute.js";
+import { getTimeFromString } from "./services/actions.js";
 
-// Define Routes
 app.use("/auth", authRoutes);
-// app.use("/matches", matchRoutes);
-// app.use("/match-scores", matchScores);
 app.use("/upload", uploadRoutes);
-// app.use("/portfolio", portfolioRoute);
 app.use("/portfolio", portfolioRoute);
 app.use("/payment", paymentRoute);
 app.use("/user", userRoute);
 app.use("/admin", adminRoute)
-// app.use("/api", emailService);
 app.use("/cricket", cricketRoute);
 
 // Root Route
@@ -78,20 +64,129 @@ cron.schedule('0 0 * * 0', () => {
   competitions()
 });
 
-// every 3 seconds
-cron.schedule('*/5 * * * * *', () => {
-  scorecards();
-});
+let scorecardsInterval = null;
+let scorecardsIntervalDay = null;
 
-// every 1 min
-cron.schedule('*/60 * * * * *', () => {
-  todays()
-});
+async function maybeStartScorecardsIntervalIfFirstMatchStarted() {
+  const now = new Date();
+  const pad = (n) => n.toString().padStart(2, '0');
+  const todayDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  let result;
+  try {
+    result = await todays();
+  } catch (e) {
+    console.error('[SCORECARDS] Error fetching todays() for interval check:', e);
+    return;
+  }
+  if (!result || result.length === 0) return;
+  const firstMatchTimeStr = result[0];
+  const nowTime = getTimeFromString(todayDateStr);
+  const firstMatchTime = getTimeFromString(firstMatchTimeStr);
+  const todayStr = now.toISOString().slice(0, 10);
+  if (firstMatchTime && nowTime > firstMatchTime) {
+    if (scorecardsInterval && scorecardsIntervalDay === todayStr) {
+      return;
+    }
+    if (scorecardsInterval) {
+      clearInterval(scorecardsInterval);
+    }
+    scorecardsIntervalDay = todayStr;
+    scorecardsInterval = setInterval(async () => {
+      try {
+        await scorecards();
+      } catch (e) {
+        console.error('[SCORECARDS] Error in 6s interval:', e);
+      }
+      // Check if day has changed
+      const nowCheck = new Date();
+      const newDayStr = nowCheck.toISOString().slice(0, 10);
+      if (newDayStr !== scorecardsIntervalDay) {
+        clearInterval(scorecardsInterval);
+        scorecardsInterval = null;
+        scorecardsIntervalDay = null;
+        console.log('[SR] Scorecards 6s interval stopped: day changed');
+      }
+    }, 6000);
+    console.log('[SR] Scorecards 6s interval started for', todayStr);
+  }
+  else {
+    console.log(`[SR] Next Scorecard At : ${firstMatchTime.toLocaleString()}`)
+  }
+}
+function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {
+  (async () => {
+    const now = new Date();
+    const pad = (n) => n.toString().padStart(2, '0');
+    const todayDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    let result;
+    try {
+      result = await todays();
+    } catch (e) {
+      console.error('[TODAYS] Error in scheduled check:', e);
+      setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
+      return;
+    }
+    if (!result || !Array.isArray(result) || result.length === 0) {
+      setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
+      return;
+    }
+    // Find the soonest valid match time in the future
+    const nowTime = getTimeFromString(todayDateStr);
+    const futureTimes = result
+      .map(getTimeFromString)
+      .filter(t => t && t > nowTime)
+      .sort((a, b) => a - b);
+    if (futureTimes.length === 0) {
+      setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
+      return;
+    }
+    const nextMatchTime = futureTimes[0];
+    const msUntilNext = nextMatchTime - nowTime;
+    const msToWait = Math.max(msUntilNext - 60 * 1000, 0);
+    setTimeout(() => scheduleTodaysCheck(fallbackMs), msToWait);
+    const nextDate = new Date(now.getTime() + msToWait);
+    console.log(`[SR] Next Match At : ${nextDate.toLocaleString()}`);
+    maybeStartScorecardsIntervalIfFirstMatchStarted();
+  })();
+}
+scheduleTodaysCheck()
+// function demoStartIntervals() {
+//   // Start todays() scheduler after 1 minute
+//   setTimeout(() => {
+//     console.log('[DEMO] Starting todays() scheduler after 1 minute');
+//     scheduleTodaysCheck();
+//   }, 60 * 1000);
+
+//   // Start scorecards 6s interval after 2 minutes
+//   setTimeout(() => {
+//     console.log('[DEMO] Starting scorecards 6s interval after 2 minutes');
+//     const todayStr = new Date().toISOString().slice(0, 10);
+//     if (scorecardsInterval) clearInterval(scorecardsInterval);
+//     scorecardsIntervalDay = todayStr;
+//     scorecardsInterval = setInterval(async () => {
+//       try {
+//         await scorecards();
+//       } catch (e) {
+//         console.error('[SCORECARDS] Error in 6s interval:', e);
+//       }
+//       // Check if day has changed
+//       const nowCheck = new Date();
+//       const newDayStr = nowCheck.toISOString().slice(0, 10);
+//       if (newDayStr !== scorecardsIntervalDay) {
+//         clearInterval(scorecardsInterval);
+//         scorecardsInterval = null;
+//         scorecardsIntervalDay = null;
+//         console.log('[SR] Scorecards 6s interval stopped: day changed');
+//       }
+//     }, 6000);
+//     console.log('[SR] Scorecards 6s interval started for', todayStr);
+//   }, 2 * 60 * 1000);
+// }
+// demoStartIntervals();
 
 
 // Start the Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  // startTrackingUserPortfolioMatches();
   console.log(`[SR] : Connected : ${PORT}`);
 });

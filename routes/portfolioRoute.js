@@ -118,7 +118,6 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
         });
     }
 });
-
 router.post("/sell-player", authMiddleware, async (req, res) => {
     try {
         if (!req.user) {
@@ -258,7 +257,6 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
         });
     }
 });
-
 router.get("/all", authMiddleware, async (req, res) => {
     try {
         if (!req.user) {
@@ -302,13 +300,6 @@ router.get("/all", authMiddleware, async (req, res) => {
         const dd = String(today.getDate()).padStart(2, '0');
         const todayStr = `${yyyy}-${mm}-${dd}`;
 
-        // Helper to check if a timestamp is today
-        function isToday(timestamp) {
-            if (!timestamp) return false;
-            const d = new Date(timestamp);
-            const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            return dStr === todayStr;
-        }
 
         // Calculate total profit and loss from all portfolios
         let totalPlayerProfit = 0;
@@ -342,8 +333,13 @@ router.get("/all", authMiddleware, async (req, res) => {
     }
 });
 
-/*-------------------------------- Upcoming Feature -------------------------------------------------------*/
 
+
+
+
+
+
+/*-------------------------------- Upcoming Feature -------------------------------------------------------*/
 router.post("/buy-team", authMiddleware, async (req, res) => {
     try {
         return
@@ -571,9 +567,5 @@ router.post("/sell-team", authMiddleware, async (req, res) => {
         });
     }
 });
-
-/*-------------------------------- Upcoming Feature -------------------------------------------------------*/
-
-
 
 export default router;

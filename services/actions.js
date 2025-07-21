@@ -6,11 +6,21 @@ import bcrypt from "bcryptjs";
 const BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const SECRET_KEY = 0xa3b1c2d3n;
 
+/**
+ * Deletes all transactions for a user by their mobile number.
+ * @param {string} mobile - The mobile number of the user.
+ * @returns {Promise<void>}
+ */
 const deleteAllTransactions = async (mobile) => {
   await User.updateOne({ mobile }, { $set: { transactions: [] } });
   console.log("All recent transactions are deleted");
 };
 
+/**
+ * Encodes a BigInt number into a base62 string.
+ * @param {bigint|number} num - The number to encode.
+ * @returns {string} The base62 encoded string.
+ */
 function base62Encode(num) {
   let encoded = "";
   const base = 62n;
@@ -21,6 +31,12 @@ function base62Encode(num) {
   }
   return encoded.padStart(8, "0");
 }
+
+/**
+ * Decodes a base62 string into a BigInt number.
+ * @param {string} str - The base62 encoded string.
+ * @returns {bigint} The decoded number.
+ */
 function base62Decode(str) {
   let num = 0n;
   const base = 62n;
@@ -30,6 +46,13 @@ function base62Decode(str) {
   }
   return num;
 }
+
+/**
+ * Encrypts a 12-digit phone number using a secret key and base62 encoding.
+ * @param {string} phoneNumber - The phone number to encrypt (must be 12 digits).
+ * @returns {string} The encrypted base62 string.
+ * @throws {Error} If the phone number is not exactly 10 digits.
+ */
 function encrypt(phoneNumber) {
   if (!/^\d{12}$/.test(phoneNumber)) {
     throw new Error("Phone number must be exactly 10 digits.");
@@ -38,6 +61,13 @@ function encrypt(phoneNumber) {
   const obfuscated = num ^ SECRET_KEY;
   return base62Encode(obfuscated);
 }
+
+/**
+ * Decrypts a base62-encoded cipher text back to the original phone number.
+ * @param {string} cipherText - The base62 encoded cipher text (8 characters).
+ * @returns {string} The decrypted phone number as a string.
+ * @throws {Error} If the cipher text is not exactly 8 base62 characters.
+ */
 function decrypt(cipherText) {
   if (!/^[0-9A-Za-z]{8}$/.test(cipherText)) {
     throw new Error("Cipher text must be exactly 8 base62 characters.");
@@ -46,6 +76,11 @@ function decrypt(cipherText) {
   const original = decoded ^ SECRET_KEY;
   return original.toString().padStart(10, "0");
 }
+
+/**
+ * Generates a random 5-character alphanumeric code.
+ * @returns {string} The generated code.
+ */
 function generateAlphaCode() {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -56,6 +91,11 @@ function generateAlphaCode() {
   return result;
 }
 
+/**
+ * Finds a user by their phone number.
+ * @param {string} phone - The user's phone number.
+ * @returns {Promise<{success: boolean, code: number, data?: any, message?: string}>}
+ */
 const findUserByPhone = async (phone) => {
   try {
     const user = await User.findOne({ mobile: phone });
@@ -74,6 +114,11 @@ const findUserByPhone = async (phone) => {
   }
 };
 
+/**
+ * Finds an OTP request by phone number.
+ * @param {string} phone - The phone number associated with the OTP.
+ * @returns {Promise<{success: boolean, code: number, data?: any, message?: string}>}
+ */
 const findOtpByPhone = async (phone) => {
   try {
     const otp = await OtpRequest.findOne({ phone });
@@ -87,6 +132,15 @@ const findOtpByPhone = async (phone) => {
   }
 };
 
+/**
+ * Creates a new user in the database.
+ * @param {string} name - The user's name.
+ * @param {string} mobile - The user's mobile number.
+ * @param {string} email - The user's email address.
+ * @param {string} password - The user's password.
+ * @param {string} [referralCode] - Optional referral code.
+ * @returns {Promise<{success: boolean, code: number, data?: any, message?: string}>}
+ */
 const createNewUser = async (name, mobile, email, password, referralCode) => {
   try {
     // Check if user already exists
@@ -128,6 +182,11 @@ const createNewUser = async (name, mobile, email, password, referralCode) => {
   }
 };
 
+/**
+ * Finds and validates a referral code, removes it from the user's list, and increments totalReferrals.
+ * @param {string} referralCode - The referral code to validate.
+ * @returns {Promise<true|{success: boolean, message: string, error?: any}>}
+ */
 const findReferral = async (referralCode) => {
   try {
     const phone = `+${decrypt(referralCode.split("-")[1])}`;
@@ -157,6 +216,10 @@ const findReferral = async (referralCode) => {
   }
 };
 
+/**
+ * Deletes all OTP requests from the database.
+ * @returns {Promise<void>}
+ */
 const deleteOldOtpRequests = async () => {
   try {
     await OtpRequest.deleteMany({});
@@ -167,6 +230,10 @@ const deleteOldOtpRequests = async () => {
   }
 };
 
+/**
+ * Removes all referral codes from all users in the database.
+ * @returns {Promise<void>}
+ */
 const deleteOldReferrals = async () => {
   try {
     await User.updateMany({}, { $unset: { referralCodes: [] } });
@@ -176,18 +243,33 @@ const deleteOldReferrals = async () => {
   }
 };
 
-// utils/paymentHelpers.js
+/**
+ * Checks if a transaction has timed out (over 3 minutes old).
+ * @param {string|Date} transactionTime - The transaction time.
+ * @returns {boolean} True if timed out, false otherwise.
+ */
 function isTransactionTimedOut(transactionTime) {
   const now = Date.now();
   return now - new Date(transactionTime).getTime() > 3 * 60 * 1000;
 }
 
+/**
+ * Maps Cashfree payment status and timeout to internal status.
+ * @param {string} cfStatus - The Cashfree status (e.g., 'PAID', 'ACTIVE').
+ * @param {boolean} isTimeout - Whether the transaction timed out.
+ * @returns {string} The mapped status ('SUCCESS', 'FAILED', or 'PENDING').
+ */
 function mapCashfreeStatus(cfStatus, isTimeout) {
   if (cfStatus === "PAID") return "SUCCESS";
   if (cfStatus === "ACTIVE") return isTimeout ? "FAILED" : "PENDING";
   return "FAILED";
 }
 
+/**
+ * Checks if a user is a super admin by their ID.
+ * @param {string} id - The user ID.
+ * @returns {Promise<{success: boolean, code: number, data?: any, message?: string}>}
+ */
 const checkIsSuperAdmin = async (id) => {
   try {
     const admin = await User.findOne({ _id: id });
@@ -205,6 +287,11 @@ const checkIsSuperAdmin = async (id) => {
   }
 }
 
+/**
+ * Finds an admin user by their ID.
+ * @param {string} id - The admin user ID.
+ * @returns {Promise<{success: boolean, code: number, data?: any, message?: string}>}
+ */
 const findAdminById = async (id) => {
   try {
     const admin = await User.findOne({ _id: id })
@@ -221,6 +308,11 @@ const findAdminById = async (id) => {
     return { success: false, code: 500, message: "Error finding admin by phone" };
   }
 }
+
+/**
+ * Gets the date range string from today to the next 1 day.
+ * @returns {string} The date range in 'YYYY-MM-DD_YYYY-MM-DD' format.
+ */
 function getTodayToNext1DaysRange() {
   const today = new Date();
 
@@ -239,6 +331,10 @@ function getTodayToNext1DaysRange() {
   return `${start}_${end}`;
 }
 
+/**
+ * Gets the date range string from today to the next 7 days.
+ * @returns {string} The date range in 'YYYY-MM-DD_YYYY-MM-DD' format.
+ */
 function getTodayToNext7DaysRange() {
   const today = new Date();
 
@@ -256,8 +352,12 @@ function getTodayToNext7DaysRange() {
 
   return `${start}_${end}`;
 }
-// 2025-06-03_2025-07-07
 
+/**
+ * Updates the last seen timestamp for a user.
+ * @param {string} userId - The user's ID.
+ * @returns {Promise<{success: boolean, code: number, data?: any, message?: string}>}
+ */
 const updateUserLastSeen = async (userId) => {
   try {
     const user = await User.findById(userId);
@@ -275,6 +375,28 @@ const updateUserLastSeen = async (userId) => {
   }
 }
 
+/**
+ * Parses a date-time string in 'YYYY-MM-DD HH:mm:ss' format to a Date object.
+ * @param {string} dateTimeStr - The date-time string.
+ * @returns {Date|null} The parsed Date object, or null if invalid.
+ */
+function getTimeFromString(dateTimeStr) {
+  // Expects format: "YYYY-MM-DD HH:mm:ss"
+  if (!dateTimeStr) return null;
+  const [datePart, timePart] = dateTimeStr.split(' ');
+  if (!datePart || !timePart) return null;
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute, second] = timePart.split(':').map(Number);
+  if (
+    [year, month, day, hour, minute, second].some(
+      (v) => isNaN(v) || v === undefined
+    )
+  ) {
+    return null;
+  }
+  return new Date(year, month - 1, day, hour, minute, second);
+}
+
 export {
   getTodayToNext7DaysRange,
   getTodayToNext1DaysRange,
@@ -288,5 +410,6 @@ export {
   checkIsSuperAdmin,
   findAdminById,
   updateUserLastSeen,
-  deleteAllTransactions
+  deleteAllTransactions,
+  getTimeFromString
 };

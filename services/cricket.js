@@ -2,8 +2,8 @@ import axios from "axios";
 import "dotenv/config";
 import Competitions from "../models/Competitions.js";
 import Todays from "../models/Todays.js";
-import { getTodayToNext1DaysRange } from "./actions.js";
 import Scorecards from "../models/Scorecards.js";
+import { getTodayToNext1DaysRange } from "./actions.js";
 
 const token = process.env.TOKEN
 const baseURL = process.env.ENT_BASE
@@ -50,12 +50,14 @@ export const competitions = async () => {
 export const todays = async () => {
     try {
         await Todays.deleteMany({});
+        /** @type {string[]} */
+        const startTimes = [];
 
         const ongoing_response = await axios.get(`${baseURL}matches/?status=3&date=${getTodayToNext1DaysRange()}&token=${token}`);
-
         const ongoing_data = ongoing_response.data.response;
         await Promise.all(ongoing_data.items.map(async (element) => {
             if (String(element.format_str).toLowerCase().includes("t20")) {
+                startTimes.push(String(element.date_start_ist));
                 await Todays.updateOne(
                     { match_id: element.match_id },
                     {
@@ -165,6 +167,7 @@ export const todays = async () => {
         const upcoming_data = upcoming_response.data.response;
         await Promise.all((upcoming_data.items || []).map(async (element) => {
             if (String(element.format_str).toLowerCase().includes("t20")) {
+                startTimes.push(String(element.date_start_ist));
                 await Todays.updateOne(
                     { match_id: element.match_id },
                     {
@@ -269,9 +272,10 @@ export const todays = async () => {
                 );
             }
         }));
-        console.log(`[SR] : ${upcoming_data.items.length + ongoing_data.items.length} Matches Today`);
+        return startTimes;
     } catch (error) {
         console.error(`[TODAYS] Error updating today's matches: ${error.message}`);
+        return [];
     }
 };
 export const scorecards = async () => {
@@ -297,15 +301,14 @@ export const scorecards = async () => {
         for (const matchId of validMatchIds) {
             await scorecard(matchId);
         }
-
-        console.log(`[SR] ${validMatchIds.length} Scorecards Updated`);
     } catch (error) {
         console.error(
             `[SCORECARDS] Error updating all live match scorecards: ${error.message}`
         );
     }
 };
-// utility
+
+// utilities
 export const scorecard = async (match_id) => {
     try {
         const scorecards_response = await axios.get(`${baseURL}matches/${match_id}/scorecard?token=${token}`);
@@ -601,7 +604,6 @@ export const scorecard = async (match_id) => {
     }
 
 }
-// Utility function for finding match info
 export const getMatch = async (matchId) => {
     try {
         const response = await axios.get(`${baseURL}matches/${matchId}/info?token=${token}`);
