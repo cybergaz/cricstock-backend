@@ -26,7 +26,8 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
                 name: "cricstock11",
                 totalProfits: 0,
                 profitFromPlatformFees: 0,
-                profitFromProfitableCuts: 0
+                profitFromProfitableCuts: 0,
+                profitFromAutoSell: 0
             });
             await company.save();
         }
@@ -204,9 +205,12 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
         // Update company profit
         let company = await Company.findOne({ name: "cricstock11" });
         if (!company) {
-            company = new Company({ name: "cricstock11", totalProfits: 0, profitFromPlatformFees: 0, profitFromProfitableCuts: 0 });
+            company = new Company({ name: "cricstock11", totalProfits: 0, profitFromPlatformFees: 0, profitFromProfitableCuts: 0, profitFromAutoSell: 0 });
         }
         company.totalProfits += fee;
+        if (sellPrice == buyPrice * 0.5) {
+            company.profitFromAutoSell += buyPrice * 0.5
+        }
         if (companyFeeType === "profitFromProfitableCuts") {
             company.profitFromProfitableCuts = (company.profitFromProfitableCuts || 0) + fee;
         } else {

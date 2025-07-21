@@ -3,6 +3,7 @@ import Competitions from "../models/Competitions.js";
 import Todays from "../models/Todays.js";
 import { competitions, scorecards, todays, getMatch } from "../services/cricket.js";
 import Scorecards from "../models/Scorecards.js";
+import { Company } from "../models/Company.js";
 
 const router = express.Router();
 
@@ -51,16 +52,19 @@ router.get("/scorecard/:match", async (req, res) => {
     const scorecard = await Scorecards.findOne({ match_id: match });
     if (!scorecard) {
       return res.status(201).json({
+        success: false,
         message: `No scorecard found for match_id: ${match}`,
         data: scorecard
       });
     }
     res.status(200).json({
+      success: true,
       message: `Scorecard found for match_id: ${match}`,
       data: scorecard
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
       message: "Error fetching scorecard for match",
       error: error.message
     });
@@ -88,6 +92,30 @@ router.get("/match/:match", async (req, res) => {
     });
   }
 });
+router.get("/company", async (req, res) => {
+  try {
+    const company = await Company.findOne({ name: "cricstock11" });
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: "Company not found",
+        data: null
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Company details fetched successfully",
+      data: company
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching company details",
+      error: error.message
+    });
+  }
+});
+
 // week
 // competitions()
 

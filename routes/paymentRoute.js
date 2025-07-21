@@ -155,7 +155,6 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
     const { status } = req.body;
     const orderStatus = result.order_status;
 
-    // Possible orderStatus values: ACTIVE, PAID, EXPIRED, TERMINATED, TERMINATION_REQUESTED
     if (orderStatus == undefined) {
       return res.status(400).json({
         success: false,
@@ -194,31 +193,11 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
         message: "Transaction not found for this order"
       });
     }
-    // Fetch order details from Cashfree before updating status
-    const cfResponse = await fetch(
-      `${URL}orders/${order_id}`,
-      {
-        method: "GET",
-        headers: {
-          "x-api-version": "2025-01-01",
-          "x-client-id": ID,
-          "x-client-secret": SECRET,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    const cfOrder = await cfResponse.json();
-    if (!cfResponse.ok) {
-      return res.status(400).json({
-        success: false,
-        message: cfOrder.message || "Unable to fetch order details from Cashfree."
-      });
-    }
     // Only allow marking as Completed if Cashfree order_status is PAID
-    if (status === "Completed" && cfOrder.order_status !== "PAID") {
+    if (status === "Completed" && orderStatus !== "PAID") {
       return res.status(400).json({
         success: false,
-        message: `Cannot mark as Completed. Cashfree order status is: ${cfOrder.order_status}`
+        message: `Cannot mark as Completed. Cashfree order status is: ${orderStatus}`
       });
     }
     // If status is "Completed", update user.amount before updating transaction status
