@@ -294,11 +294,41 @@ router.get("/all", authMiddleware, async (req, res) => {
             .filter(p => p.status == "Sold")
             .reduce((sum, p) => sum + ((Number(p.profit) || 0)), 0);
         const totalProfits = playerProfits + teamProfits
+        // Fetch today's portfolios from DB
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
 
+        // Helper to check if a timestamp is today
+        function isToday(timestamp) {
+            if (!timestamp) return false;
+            const d = new Date(timestamp);
+            const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            return dStr === todayStr;
+        }
+
+        // Calculate total profit and loss from all portfolios
+        let totalPlayerProfit = 0;
+        let totalTeamProfit = 0;
+        if (Array.isArray(user.playerPortfolios)) {
+            totalPlayerProfit = user.playerPortfolios
+                .filter(p => p.status === "Sold")
+                .reduce((sum, p) => sum + (Number(p.profit) || 0), 0);
+        }
+        if (Array.isArray(user.teamPortfolios)) {
+            totalTeamProfit = user.teamPortfolios
+                .filter(p => p.status === "Sold")
+                .reduce((sum, p) => sum + (Number(p.profit) || 0), 0);
+        }
+        const totalPortfolioProfit = totalPlayerProfit + totalTeamProfit;
         res.status(200).json({
             success: true,
             message: "Portfolios Fetched",
             playerPortfolios,
+            totalPortfolioProfit,
             teamPortfolios,
             value: user.amount,
             profit: totalProfits
@@ -420,7 +450,6 @@ router.post("/buy-team", authMiddleware, async (req, res) => {
         });
     }
 });
-
 router.post("/sell-team", authMiddleware, async (req, res) => {
     try {
         return
