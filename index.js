@@ -66,7 +66,6 @@ cron.schedule('0 0 * * 0', () => {
 
 cron.schedule('*/5 * * * * *', async () => {
   scorecards();
-  console.log("[SR] Live Matches Updated")
 });
 
 function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {

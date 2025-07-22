@@ -42,7 +42,6 @@ export const competitions = async () => {
             }
         }));
         console.log(`[SR] : ${competitions_data.items.length} Competitions`);
-
     } catch (error) {
         console.error(`[COMPETITIONS] Error updating competitions: ${error.message}`);
     }
@@ -272,7 +271,6 @@ export const todays = async () => {
                 );
             }
         }));
-        console.log("[SR] Todays Matches Updated")
         return startTimes;
     } catch (error) {
         console.error(`[TODAYS] Error updating today's matches: ${error.message}`);
@@ -291,8 +289,6 @@ export const scorecards = async () => {
             if (String(match.format_str).toLowerCase().includes("t20"))
                 validMatchIds.push(match.match_id);
         }
-
-        await Scorecards.deleteMany({});
 
         if (!validMatchIds.length) {
             console.log("[SR] No Live Matches");
