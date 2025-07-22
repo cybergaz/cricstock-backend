@@ -101,7 +101,6 @@ function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {
     setTimeout(() => scheduleTodaysCheck(fallbackMs), msToWait);
     const nextDate = new Date(now.getTime() + msToWait);
     console.log(`[SR] Next Match At : ${nextDate.toLocaleString()}`);
-    // maybeStartScorecardsIntervalIfFirstMatchStarted();
   })();
 }
 scheduleTodaysCheck()

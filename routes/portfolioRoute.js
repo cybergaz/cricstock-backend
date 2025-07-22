@@ -190,8 +190,6 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
             fee = totalSellAmount * 0.001;
             if (fee < 5) {
                 fee = 5
-            } else if (fee > 20) {
-                fee = 20
             }
             companyFeeType = "profitFromPlatformFees";
         }
