@@ -64,55 +64,11 @@ cron.schedule('0 0 * * 0', () => {
   competitions()
 });
 
-let scorecardsInterval = null;
-let scorecardsIntervalDay = null;
+cron.schedule('*/5 * * * * *', async () => {
+  scorecards();
+  console.log("[SR] Live Matches Updated")
+});
 
-async function maybeStartScorecardsIntervalIfFirstMatchStarted() {
-  const now = new Date();
-  const pad = (n) => n.toString().padStart(2, '0');
-  const todayDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-  let result;
-  try {
-    result = await todays();
-  } catch (e) {
-    console.error('[SCORECARDS] Error fetching todays() for interval check:', e);
-    return;
-  }
-  if (!result || result.length === 0) return;
-  const firstMatchTimeStr = result[0];
-  const nowTime = getTimeFromString(todayDateStr);
-  const firstMatchTime = getTimeFromString(firstMatchTimeStr);
-  const todayStr = now.toISOString().slice(0, 10);
-  if (firstMatchTime && nowTime > firstMatchTime) {
-    if (scorecardsInterval && scorecardsIntervalDay === todayStr) {
-      return;
-    }
-    if (scorecardsInterval) {
-      clearInterval(scorecardsInterval);
-    }
-    scorecardsIntervalDay = todayStr;
-    scorecardsInterval = setInterval(async () => {
-      try {
-        await scorecards();
-      } catch (e) {
-        console.error('[SCORECARDS] Error in 6s interval:', e);
-      }
-      // Check if day has changed
-      const nowCheck = new Date();
-      const newDayStr = nowCheck.toISOString().slice(0, 10);
-      if (newDayStr !== scorecardsIntervalDay) {
-        clearInterval(scorecardsInterval);
-        scorecardsInterval = null;
-        scorecardsIntervalDay = null;
-        console.log('[SR] Scorecards 6s interval stopped: day changed');
-      }
-    }, 6000);
-    console.log('[SR] Scorecards 6s interval started for', todayStr);
-  }
-  else {
-    console.log(`[SR] Next Scorecard At : ${firstMatchTime.toLocaleString()}`)
-  }
-}
 function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {
   (async () => {
     const now = new Date();
@@ -146,46 +102,11 @@ function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {
     setTimeout(() => scheduleTodaysCheck(fallbackMs), msToWait);
     const nextDate = new Date(now.getTime() + msToWait);
     console.log(`[SR] Next Match At : ${nextDate.toLocaleString()}`);
-    maybeStartScorecardsIntervalIfFirstMatchStarted();
+    // maybeStartScorecardsIntervalIfFirstMatchStarted();
   })();
 }
 scheduleTodaysCheck()
-// function demoStartIntervals() {
-//   // Start todays() scheduler after 1 minute
-//   setTimeout(() => {
-//     console.log('[DEMO] Starting todays() scheduler after 1 minute');
-//     scheduleTodaysCheck();
-//   }, 60 * 1000);
 
-//   // Start scorecards 6s interval after 2 minutes
-//   setTimeout(() => {
-//     console.log('[DEMO] Starting scorecards 6s interval after 2 minutes');
-//     const todayStr = new Date().toISOString().slice(0, 10);
-//     if (scorecardsInterval) clearInterval(scorecardsInterval);
-//     scorecardsIntervalDay = todayStr;
-//     scorecardsInterval = setInterval(async () => {
-//       try {
-//         await scorecards();
-//       } catch (e) {
-//         console.error('[SCORECARDS] Error in 6s interval:', e);
-//       }
-//       // Check if day has changed
-//       const nowCheck = new Date();
-//       const newDayStr = nowCheck.toISOString().slice(0, 10);
-//       if (newDayStr !== scorecardsIntervalDay) {
-//         clearInterval(scorecardsInterval);
-//         scorecardsInterval = null;
-//         scorecardsIntervalDay = null;
-//         console.log('[SR] Scorecards 6s interval stopped: day changed');
-//       }
-//     }, 6000);
-//     console.log('[SR] Scorecards 6s interval started for', todayStr);
-//   }, 2 * 60 * 1000);
-// }
-// demoStartIntervals();
-
-
-// Start the Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`[SR] : Connected : ${PORT}`);

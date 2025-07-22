@@ -272,6 +272,7 @@ export const todays = async () => {
                 );
             }
         }));
+        console.log("[SR] Todays Matches Updated")
         return startTimes;
     } catch (error) {
         console.error(`[TODAYS] Error updating today's matches: ${error.message}`);
