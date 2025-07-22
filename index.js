@@ -65,45 +65,49 @@ cron.schedule('0 0 * * 0', () => {
 });
 
 cron.schedule('*/5 * * * * *', async () => {
-  scorecards();
+  scorecards()
 });
 
-function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {
-  (async () => {
-    const now = new Date();
-    const pad = (n) => n.toString().padStart(2, '0');
-    const todayDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    let result;
-    try {
-      result = await todays();
-    } catch (e) {
-      console.error('[TODAYS] Error in scheduled check:', e);
-      setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
-      return;
-    }
-    if (!result || !Array.isArray(result) || result.length === 0) {
-      setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
-      return;
-    }
-    // Find the soonest valid match time in the future
-    const nowTime = getTimeFromString(todayDateStr);
-    const futureTimes = result
-      .map(getTimeFromString)
-      .filter(t => t && t > nowTime)
-      .sort((a, b) => a - b);
-    if (futureTimes.length === 0) {
-      setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
-      return;
-    }
-    const nextMatchTime = futureTimes[0];
-    const msUntilNext = nextMatchTime - nowTime;
-    const msToWait = Math.max(msUntilNext - 60 * 1000, 0);
-    setTimeout(() => scheduleTodaysCheck(fallbackMs), msToWait);
-    const nextDate = new Date(now.getTime() + msToWait);
-    console.log(`[SR] Next Match At : ${nextDate.toLocaleString()}`);
-  })();
-}
-scheduleTodaysCheck()
+cron.schedule('*/60 * * * * *', async () => {
+  todays()
+});
+
+// function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {
+//   (async () => {
+//     const now = new Date();
+//     const pad = (n) => n.toString().padStart(2, '0');
+//     const todayDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+//     let result;
+//     try {
+//       result = await todays();
+//     } catch (e) {
+//       console.error('[TODAYS] Error in scheduled check:', e);
+//       setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
+//       return;
+//     }
+//     if (!result || !Array.isArray(result) || result.length === 0) {
+//       setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
+//       return;
+//     }
+//     // Find the soonest valid match time in the future
+//     const nowTime = getTimeFromString(todayDateStr);
+//     const futureTimes = result
+//       .map(getTimeFromString)
+//       .filter(t => t && t > nowTime)
+//       .sort((a, b) => a - b);
+//     if (futureTimes.length === 0) {
+//       setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
+//       return;
+//     }
+//     const nextMatchTime = futureTimes[0];
+//     const msUntilNext = nextMatchTime - nowTime;
+//     const msToWait = Math.max(msUntilNext - 60 * 1000, 0);
+//     setTimeout(() => scheduleTodaysCheck(fallbackMs), msToWait);
+//     const nextDate = new Date(now.getTime() + msToWait);
+//     console.log(`[SR] Next Match At : ${nextDate.toLocaleString()}`);
+//   })();
+// }
+// scheduleTodaysCheck()
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
