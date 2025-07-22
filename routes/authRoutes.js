@@ -38,10 +38,7 @@ router.post("/send-otp", async (req, res) => {
 
     let data = await findOtpByPhone(mobile)
     if (data.code === 200) {
-      let result = await OtpRequest.deleteOne({ phone: mobile })
-      if (result.deletedCount > 0) {
-        console.log("Deleted existing OTP record");
-      }
+      await OtpRequest.deleteOne({ phone: mobile })
     }
 
     const formattedMobile = mobile.startsWith('+91') ? mobile : `+91${mobile}`;
@@ -58,7 +55,7 @@ router.post("/send-otp", async (req, res) => {
       from: twilioNumber,
       to: formattedMobile
     })
-      .then(() => console.log("OTP sent via Twilio..."))
+      .then(() => { })
       .catch(console.error);
 
     // handle Twilio errors with a timeout (but it's not working because it always times out)
@@ -483,13 +480,12 @@ router.post("/verify-mobile-otp", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    console.log("userId :", req.user.userId)
     const user = await User.findOne({ _id: req.user.userId });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    console.log("user :", user)
+    // console.log("user :", user)
     // user.mobile = phone;
     // user.isVerified = true;
     // await user.save();
