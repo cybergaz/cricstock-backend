@@ -292,12 +292,13 @@ export const scorecards = async () => {
     }
 
     if (!validMatchIds.length) {
-      console.log("[SR] No Live Matches");
+      // console.log("[SR] No Live Matches");
       return;
     }
 
     for (const matchId of validMatchIds) {
       await scorecard(matchId);
+      // console.log(`[SR] Updated scorecard for match_id: ${matchId}`);
     }
   } catch (error) {
     console.error(

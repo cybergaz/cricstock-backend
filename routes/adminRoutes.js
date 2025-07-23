@@ -65,16 +65,17 @@ router.get('/total-active-users', async (req, res) => {
 
 router.get('/company-statement', authMiddleware, async (req, res) => {
   try {
-    const company_stats = await Company.find();
-    console.log("company_stats -> ", company_stats[0])
+    const company_stats = await Company.findOne({ name: "cricstock11" });
+    // console.log("company_stats -> ", company_stats)
 
     res.status(200).json({
       message: 'Company statistics retrieved successfully',
       data: {
-        name: company_stats[0].name,
-        totalProfits: company_stats[0].totalProfits.toFixed(2),
-        profitFromPlatformFees: company_stats[0].profitFromPlatformFees.toFixed(2),
-        profitFromProfitableCuts: company_stats[0].profitFromProfitableCuts.toFixed(2)
+        name: company_stats.name,
+        totalProfits: company_stats.totalProfits.toFixed(2),
+        profitFromPlatformFees: company_stats.profitFromPlatformFees.toFixed(2),
+        profitFromProfitableCuts: company_stats.profitFromProfitableCuts.toFixed(2),
+        profitFromAutoSell: company_stats.profitFromAutoSell.toFixed(2)
       }
     });
   } catch (error) {
