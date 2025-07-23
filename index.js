@@ -45,7 +45,6 @@ import portfolioRoute from "./routes/portfolioRoute.js"
 import adminRoute from "./routes/adminRoutes.js"
 import cricketRoute from "./routes/cricketRoute.js";
 import userRoute from "./routes/userRoute.js";
-import { getTimeFromString } from "./services/actions.js";
 
 app.use("/auth", authRoutes);
 app.use("/upload", uploadRoutes);
@@ -64,13 +63,13 @@ cron.schedule('0 0 * * 0', () => {
   competitions()
 });
 
-cron.schedule('*/5 * * * * *', async () => {
-  scorecards()
-});
+// cron.schedule('*/5 * * * * *', async () => {
+//   scorecards()
+// });
 
-cron.schedule('*/60 * * * * *', async () => {
-  todays()
-});
+// cron.schedule('*/60 * * * * *', async () => {
+//   todays()
+// });
 
 // function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {
 //   (async () => {

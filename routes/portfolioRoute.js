@@ -47,7 +47,7 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
       pointOnePercent = 20
     }
 
-    if ((bucket + pointOnePercent) > user.amount) {
+    if ((bucket + pointOnePercent) > (user.amount + user.referralAmount)) {
       return res.status(400).json({
         success: false,
         message: `Insufficient balance, Balance ₹${user.amount}`,
@@ -60,7 +60,13 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
 
     bucket += pointOnePercent;
 
-    user.amount -= bucket;
+    if (user.referralAmount >= bucket) {
+      user.referralAmount -= bucket;
+    } else {
+      const remaining = bucket - user.referralAmount;
+      user.referralAmount = 0;
+      user.amount -= remaining;
+    }
     // -----------------------------------------------------------------------------
 
     if (!Array.isArray(user.playerPortfolios)) {
@@ -339,36 +345,15 @@ router.get("/all", authMiddleware, async (req, res) => {
       .filter(p => p.status == "Sold")
       .reduce((sum, p) => sum + ((Number(p.profit) || 0)), 0);
     const totalProfits = playerProfits + teamProfits
-    // Fetch today's portfolios from DB
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${yyyy}-${mm}-${dd}`;
 
-
-    // Calculate total profit and loss from all portfolios
-    let totalPlayerProfit = 0;
-    let totalTeamProfit = 0;
-    if (Array.isArray(user.playerPortfolios)) {
-      totalPlayerProfit = user.playerPortfolios
-        .filter(p => p.status === "Sold")
-        .reduce((sum, p) => sum + (Number(p.profit) || 0), 0);
-    }
-    if (Array.isArray(user.teamPortfolios)) {
-      totalTeamProfit = user.teamPortfolios
-        .filter(p => p.status === "Sold")
-        .reduce((sum, p) => sum + (Number(p.profit) || 0), 0);
-    }
-    const totalPortfolioProfit = totalPlayerProfit + totalTeamProfit;
+    const totalPortfolioProfit = user.amount - depositedAmount
     res.status(200).json({
       success: true,
       message: "Portfolios Fetched",
       playerPortfolios,
       totalPortfolioProfit,
       teamPortfolios,
-      value: user.amount,
+      value: (Number(user.amount) + Number(user.referralAmount)),
       profit: totalProfits
     });
   } catch (err) {

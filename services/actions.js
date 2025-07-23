@@ -47,36 +47,56 @@ function base62Decode(str) {
   return num;
 }
 
-/**
- * Encrypts a 12-digit phone number using a secret key and base62 encoding.
- * @param {string} phoneNumber - The phone number to encrypt (must be 12 digits).
- * @returns {string} The encrypted base62 string.
- * @throws {Error} If the phone number is not exactly 10 digits.
- */
+// Fixed encrypt/decrypt for 10-digit phone numbers, with improved validation and consistent output
+
 function encrypt(phoneNumber) {
-  if (!/^\d{12}$/.test(phoneNumber)) {
+  // Accepts a 10-digit phone number as string or number
+  if (typeof phoneNumber === "number") phoneNumber = phoneNumber.toString();
+  if (!/^\d{10}$/.test(phoneNumber)) {
     throw new Error("Phone number must be exactly 10 digits.");
   }
+  // Pad to 12 digits if needed (for legacy compatibility, but we use 10 digits)
+  // const padded = phoneNumber.padStart(12, "0");
   const num = BigInt(phoneNumber);
   const obfuscated = num ^ SECRET_KEY;
   return base62Encode(obfuscated);
 }
 
 /**
- * Decrypts a base62-encoded cipher text back to the original phone number.
- * @param {string} cipherText - The base62 encoded cipher text (8 characters).
- * @returns {string} The decrypted phone number as a string.
- * @throws {Error} If the cipher text is not exactly 8 base62 characters.
+ * Decrypts a base62-encoded cipher text back to a 10-digit phone number string.
+ * 
+ * @param {string} cipherText - The string to decrypt. 
+ *   This should be a string containing at least one contiguous base62 substring of 8 or more characters.
+ *   For example, it can be just the base62 string (like "0GBGFRBa") or a string with a prefix/suffix (like "CRST-0GBGFRBa-Uii9f").
+ *   The function will extract the last such base62 substring and attempt to decode it.
+ * 
+ * @returns {string} The decrypted 10-digit phone number as a string.
+ * 
+ * @throws {Error} If the input is not a string or does not contain a valid base62 substring.
  */
-function decrypt(cipherText) {
-  if (!/^[0-9A-Za-z]{8}$/.test(cipherText)) {
-    throw new Error("Cipher text must be exactly 8 base62 characters.");
+export function decrypt(cipherText) {
+  if (typeof cipherText !== "string") {
+    throw new Error("Cipher text must be a string.");
   }
-  const decoded = base62Decode(cipherText);
+  // Accepts strings like "CRST-008md0Ak-O9I8Y" and extracts the last base62 substring of 8 or more characters
+  // Will match "008md0Ak" in the example above
+  const base62Match = cipherText.match(/([0-9A-Za-z]{8,})(?!.*[0-9A-Za-z]{8,})/);
+  if (!base62Match) {
+    throw new Error("Cipher text must contain at least 8 base62 characters.");
+  }
+  const base62Part = base62Match[1];
+  const decoded = base62Decode(base62Part);
   const original = decoded ^ SECRET_KEY;
-  return original.toString().padStart(10, "0");
+  // Always return 10 digits, pad with zeros if needed
+  let phone = original.toString();
+  if (phone.length > 10) {
+    // If more than 10 digits, take the last 10 (in case of accidental padding)
+    phone = phone.slice(-10);
+  } else if (phone.length < 10) {
+    phone = phone.padStart(10, "0");
+  }
+  return phone;
 }
-
 /**
  * Generates a random 5-character alphanumeric code.
  * @returns {string} The generated code.
@@ -150,19 +170,19 @@ const createNewUser = async (name, mobile, email, password, referralCode) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    // CRST-0GDt8GQT-A7F
     let newUser;
     if (referralCode) {
       const validReferral = await findReferral(referralCode);
       if (!validReferral) {
         return { success: false, code: 403 };
       }
+      const referredBy = `+91${decrypt(referralCode)}`
       newUser = new User({
         name,
         mobile,
         email,
         password: hashedPassword,
-        referredBy: referralCode,
+        referredBy: referredBy,
         referralCodes: [],
       });
     } else {
@@ -189,11 +209,10 @@ const createNewUser = async (name, mobile, email, password, referralCode) => {
  */
 const findReferral = async (referralCode) => {
   try {
-    const phone = `+${decrypt(referralCode.split("-")[1])}`;
+    const phone = `+91${decrypt(referralCode)}`;
 
     const user = await User.findOne({
-      mobile: phone,
-      referralCodes: referralCode,
+      mobile: phone
     });
 
     if (!user) {
@@ -203,16 +222,25 @@ const findReferral = async (referralCode) => {
         message: "User not found or referral code does not exist",
       };
     }
-
+    if (!Array.isArray(user.referralCodes) || !user.referralCodes.includes(referralCode)) {
+      return {
+        success: false,
+        message: "Referral code not found in user's referralCodes array",
+      };
+    }
+    if (!user) {
+      return {
+        success: false,
+        message: "User not found or referral code does not exist",
+      };
+    }
     await User.updateOne(
       { mobile: phone },
       { $pull: { referralCodes: referralCode }, $inc: { totalReferrals: 1 } }
     );
-
-    console.log("Referral code removed and totalReferrals incremented");
-    return true;
+    return { success: true, message: "Referral Code Added" };
   } catch (err) {
-    return { success: false, message: "Server error", error: err };
+    return { success: false, message: "Server error" };
   }
 };
 
@@ -402,6 +430,7 @@ export {
   getTodayToNext1DaysRange,
   findUserByPhone,
   findOtpByPhone,
+  findReferral,
   createNewUser,
   deleteOldOtpRequests,
   deleteOldReferrals,

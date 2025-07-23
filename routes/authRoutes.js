@@ -6,7 +6,7 @@ import twilio from "twilio";
 import dotenv from "dotenv";
 import { OAuth2Client } from "google-auth-library";
 import authMiddleware from "../middlewares/authMiddleware.js";
-import { findUserByPhone, findOtpByPhone, createNewUser } from "../services/actions.js";
+import { findUserByPhone, findOtpByPhone, createNewUser, findReferral, decrypt } from "../services/actions.js";
 
 dotenv.config();
 
@@ -111,24 +111,29 @@ router.post("/verify-otp", async (req, res) => {
       const hashedPassword = await bcrypt.hash(new_password, 10);
       user.password = hashedPassword;
       await user.save();
-
       res.status(201).json({ message: "Password reset successfully" });
       return;
     }
 
-    let newUser;
-    if (!email == "") {
-      newUser = await createNewUser(name, mobile, email, password, referralCode);
+    // Referral code logic
+    if (referralCode) {
+      const referralResult = await findReferral(referralCode);
+      if (!referralResult.success) {
+        return res.status(403).json({ message: "Invalid Referral Code" });
+      }
     }
-    newUser = await createNewUser(name, mobile, null, password, referralCode);
+
+    // Only call createNewUser once, with correct params
+    const newUser = await createNewUser(name, mobile, email || null, password, referralCode);
     if (newUser.success) {
       res.status(201).json({ message: "OTP verified and NEW USER created successfully" });
     } else if (!newUser.success && newUser.code == 403) {
       res.status(403).json({ message: "Invalid Referral Code" });
+    } else if (!newUser.success && newUser.code == 409) {
+      res.status(409).json({ message: "User already exists" });
     } else {
       res.status(newUser.code).json({ message: "Error Inserting New User" });
     }
-
   } catch (err) {
     res.status(500).json({ message: "Error verifying OTP" });
   }
@@ -508,17 +513,24 @@ router.post('/add-referral-code', authMiddleware, async (req, res) => {
     const userId = req.user.userId;
     const { referralCode } = req.body;
     if (!referralCode) {
-      res.status(404).json({ message: "No Referral Code Found" });
+      return res.status(400).json({ message: "No Referral Code Found" });
     }
     const user = await User.findOne({ _id: userId });
     if (!user) {
-      res.status(404).json({ message: "No Such User Found" });
+      return res.status(404).json({ message: "No Such User Found" });
+    }
+    if (user.referralCodes && user.referralCodes.includes(referralCode)) {
+      return res.status(409).json({ message: "Referral Code already added" });
     }
     user.referralCodes.push(referralCode);
     await user.save();
-    res.status(200).json({ message: "Added Referral Code" });
+    return res.status(200).json({ message: "Added Referral Code" });
   } catch (error) {
-    res.status(500).json({ message: error });
+    if (res.headersSent) {
+      console.error("Error after headers sent:", error);
+      return;
+    }
+    res.status(500).json({ message: error?.message || "Internal Server Error" });
   }
 })
 

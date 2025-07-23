@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { User } from "../models/User.js"
+import { findUserByPhone } from "../services/actions.js";
 
 const router = express.Router();
 dotenv.config();
@@ -139,6 +140,7 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
       });
     }
     const { order_id } = req.params;
+    const { status } = req.body;
     const response = await fetch(
       `${URL}orders/${order_id}`,
       {
@@ -152,9 +154,7 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
       }
     );
     const result = await response.json();
-    const { status } = req.body;
     const orderStatus = result.order_status;
-
     if (orderStatus == undefined) {
       return res.status(400).json({
         success: false,
@@ -201,6 +201,12 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
     if (status === "Completed") {
       const txn = user.transactions[txnIndex];
       if (typeof txn.amount === "number") {
+        if (user.referredBy !== "") {
+          user.referralAmount = txn.amount * 0.1
+          const referredUser = await User.findOne({ mobile: user.referredBy });
+          referredUser.referralAmount += txn.amount * 0.1
+          await referredUser.save()
+        }
         user.amount += Number(txn.amount);
       }
     }
