@@ -2,7 +2,6 @@ import express from "express";
 import dotenv from "dotenv";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { User } from "../models/User.js"
-import { findUserByPhone } from "../services/actions.js";
 
 const router = express.Router();
 dotenv.config();
