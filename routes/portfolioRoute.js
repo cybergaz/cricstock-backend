@@ -158,7 +158,7 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     // console.log("quantity -> ", quantity)
 
     let bucket = quantity * price
-    console.log("bucket -> ", bucket)
+    // console.log("bucket -> ", bucket)
     let pointOnePercent = bucket * 0.001;
     // console.log("pointOnePercent -> ", pointOnePercent)
 

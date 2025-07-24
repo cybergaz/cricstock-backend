@@ -103,7 +103,7 @@ router.get('/company-statement', authMiddleware, async (req, res) => {
       },
     ]);
 
-    console.log(result[0]);
+    // console.log(result[0]);
 
     const gross_profit = result[0].totalCompletedDeposits - result[0].totalUserAmount
 
