@@ -59,72 +59,91 @@ router.post("/withdrawl-request", authMiddleware, async (req, res) => {
     to: "xxcricstock11@gmail.com",
     subject: `Withdrawal Request`,
     html: `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 540px; margin: 32px auto; border: 1px solid #d1d5db; border-radius: 10px; box-shadow: 0 2px 8px #e0e7ef; padding: 32px 28px; background: #fff;">
-        <div style="text-align: center; margin-bottom: 24px;">
-          <h1 style="color: #1a237e; font-size: 2rem; margin: 0;">Withdrawal Request Notification</h1>
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 32px auto; border-radius: 12px; box-shadow: 0 4px 24px #e0e7ef; background: #f8fafc; padding: 0;">
+        <div style="background: linear-gradient(90deg, #1a237e 0%, #3949ab 100%); border-radius: 12px 12px 0 0; padding: 32px 0 18px 0; text-align: center;">
+          <h1 style="color: #fff; font-size: 2.2rem; margin: 0; letter-spacing: 1px;">Withdrawal Request</h1>
         </div>
-        <p style="font-size: 16px; color: #222; margin-bottom: 18px;">
-          Dear Admin,<br>
-          <br>
-          You have received a new withdrawal request. Please review the details below and process the request at your earliest convenience.
-        </p>
-        <table style="width: 100%; font-size: 15px; color: #222; border-collapse: collapse; margin-bottom: 24px;">
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600; width: 180px;">Account Holder Name:</td>
-            <td style="padding: 8px 0;">${accountName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600;">Email Address:</td>
-            <td style="padding: 8px 0;">${email}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600;">Phone Number:</td>
-            <td style="padding: 8px 0;">${phone}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600;">Withdrawal Amount:</td>
-            <td style="padding: 8px 0;">₹${amount}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600;">Account Number:</td>
-            <td style="padding: 8px 0;">${accountNumber}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600;">IFSC Code:</td>
-            <td style="padding: 8px 0;">${ifsc}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600;">Bank Name:</td>
-            <td style="padding: 8px 0;">${bankName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600;">Aadhar Number:</td>
-            <td style="padding: 8px 0;">${aadhar}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600;">PAN Number:</td>
-            <td style="padding: 8px 0;">${pan}</td>
-          </tr>
-        </table>
-        <div style="margin-bottom: 18px;">
-          <span style="font-size: 14px; color: #374151;">
-            <strong>Request ID:</strong> <span style="color: #1a237e;">${withdrawId}</span><br>
-            <strong>Request Date:</strong> <span style="color: #1a237e;">${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</span>
-          </span>
+        <div style="padding: 32px 32px 24px 32px;">
+          <table style="width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px #e0e7ef;">
+            <tbody>
+              <tr style="background: #f1f5fb;">
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e; width: 210px; border-bottom: 1px solid #e3e8ee;">Account Holder Name</td>
+                <td style="padding: 14px 18px; border-bottom: 1px solid #e3e8ee;">${accountName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e; border-bottom: 1px solid #e3e8ee;">Email Address</td>
+                <td style="padding: 14px 18px; border-bottom: 1px solid #e3e8ee;">${email}</td>
+              </tr>
+              <tr style="background: #f1f5fb;">
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e; border-bottom: 1px solid #e3e8ee;">Phone Number</td>
+                <td style="padding: 14px 18px; border-bottom: 1px solid #e3e8ee;">${phone}</td>
+              </tr>
+              <tr>
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e; border-bottom: 1px solid #e3e8ee;">Account Number</td>
+                <td style="padding: 14px 18px; border-bottom: 1px solid #e3e8ee;">${accountNumber}</td>
+              </tr>
+              <tr style="background: #f1f5fb;">
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e; border-bottom: 1px solid #e3e8ee;">IFSC Code</td>
+                <td style="padding: 14px 18px; border-bottom: 1px solid #e3e8ee;">${ifsc}</td>
+              </tr>
+              <tr>
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e; border-bottom: 1px solid #e3e8ee;">Bank Name</td>
+                <td style="padding: 14px 18px; border-bottom: 1px solid #e3e8ee;">${bankName}</td>
+              </tr>
+              <tr style="background: #f1f5fb;">
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e; border-bottom: 1px solid #e3e8ee;">Aadhar Number</td>
+                <td style="padding: 14px 18px; border-bottom: 1px solid #e3e8ee;">${aadhar}</td>
+              </tr>
+              <tr>
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e; border-bottom: 1px solid #e3e8ee;">PAN Number</td>
+                <td style="padding: 14px 18px; border-bottom: 1px solid #e3e8ee;">${pan}</td>
+              </tr>
+              <tr>
+                <td colspan="2" style="padding: 18px 18px 4px 18px; font-weight: 700; color: #3949ab; font-size: 1.08rem; background: #e8eaf6; border-bottom: 1px solid #e3e8ee;">
+                  Withdrawal Details
+                  <span style="float: right; font-weight: 400; color: #607d8b; font-size: 0.58rem;">
+                    ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+                  </span>
+                </td>
+              </tr>
+              <tr style="background: #f1f5fb;">
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e;">Requested Amount</td>
+                <td style="padding: 14px 18px;">₹${amount}</td>
+              </tr>
+              <tr>
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e;">GST (28%)</td>
+                <td style="padding: 14px 18px;">₹${(amount * 0.28).toFixed(2)}</td>
+              </tr>
+              ${amount > 10000
+        ? `<tr style="background: #f1f5fb;">
+                        <td style="padding: 14px 18px; font-weight: 600; color: #1a237e;">TDS (1%)</td>
+                        <td style="padding: 14px 18px;">₹${(amount * 0.01).toFixed(2)}</td>
+                      </tr>`
+        : ""
+      }
+              <tr>
+                <td style="padding: 14px 18px; font-weight: 600; color: #1a237e;">Net Withdrawal Amount</td>
+                <td style="padding: 14px 18px; font-weight: 700; color: #388e3c;">
+                  ₹${(amount - (amount * 0.28) - (amount * 0.01)).toFixed(2)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="font-size: 13px; color: #888; text-align: center; margin-top: 32px;">
+            This is an automated notification from <b>cricstock11@gmail.com</b>
+          </p>
         </div>
-        <hr style="margin: 24px 0; border: none; border-top: 1px solid #e0e0e0;" />
-        <p style="font-size: 13px; color: #888; text-align: center;">
-          This is an automated notification from <b>cricstock11@gmail.com</b>.<br>
-          Please do not reply to this email.
-        </p>
       </div>
     `,
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    user.amount -= amount;
+
+    user.amount -= amount
+
     await user.save();
+
     return res.status(200).json({ success: true, message: "Email sent and balance updated successfully." });
   } catch (error) {
     console.error("Error sending email:", error);
