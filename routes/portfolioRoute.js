@@ -153,21 +153,21 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     }
 
     const { player, price, quantity, match_id } = req.body;
-    console.log("-----------------------------------------------------------")
-    console.log("price -> ", price)
-    console.log("quantity -> ", quantity)
+    // console.log("-----------------------------------------------------------")
+    // console.log("price -> ", price)
+    // console.log("quantity -> ", quantity)
 
     let bucket = quantity * price
     console.log("bucket -> ", bucket)
     let pointOnePercent = bucket * 0.001;
-    console.log("pointOnePercent -> ", pointOnePercent)
+    // console.log("pointOnePercent -> ", pointOnePercent)
 
     if (pointOnePercent < 5) {
       pointOnePercent = 5
     } else if (pointOnePercent > 20) {
       pointOnePercent = 20
     }
-    console.log("pointOnePercent final -> ", pointOnePercent)
+    // console.log("pointOnePercent final -> ", pointOnePercent)
 
     if (!Array.isArray(user.playerPortfolios)) {
       user.playerPortfolios = [];
@@ -191,7 +191,7 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     let portfolio = user.playerPortfolios[portfolioIndex];
     // Calculate profit and profitPercentage
     const buyPrice = Number(portfolio.boughtPrice) || 0;
-    console.log("boughtPrice -> ", portfolio.boughtPrice)
+    // console.log("boughtPrice -> ", portfolio.boughtPrice)
     const quantityHeld = Number(portfolio.quantity) || 0;
     let profit = "";
     let profitPercentage = "";
@@ -210,15 +210,15 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     let soldMessage = "";
     // Calculate the amount to add to user's amount
     let totalSellAmount = qtyToSell * sellPrice;
-    console.log("--------------------------")
-    console.log("qtyToSell -> ", qtyToSell)
-    console.log("sellPrice -> ", sellPrice)
-    console.log("totalSellAmount -> ", totalSellAmount)
+    // console.log("--------------------------")
+    // console.log("qtyToSell -> ", qtyToSell)
+    // console.log("sellPrice -> ", sellPrice)
+    // console.log("totalSellAmount -> ", totalSellAmount)
     let totalBuyAmount = qtyToSell * buyPrice;
-    console.log("buyPrice -> ", buyPrice)
-    console.log("totalBuyAmount -> ", totalBuyAmount)
+    // console.log("buyPrice -> ", buyPrice)
+    // console.log("totalBuyAmount -> ", totalBuyAmount)
     const userProfitOrLoss = totalSellAmount - totalBuyAmount;
-    console.log("userProfitOrLoss -> ", userProfitOrLoss)
+    // console.log("userProfitOrLoss -> ", userProfitOrLoss)
 
     let profitCut = 0;
     let companyFeeType = "";
@@ -226,18 +226,18 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     if (userProfitOrLoss > 0) {
       // 5% of profit
       profitCut = userProfitOrLoss * 0.05;
-      console.log("profitCut -> ", profitCut)
+      // console.log("profitCut -> ", profitCut)
       companyFeeType = "profitFromProfitableCuts";
       // update user amount in db
       user.amount += totalSellAmount - (profitCut + pointOnePercent);
-      console.log("user amount += -> ", totalSellAmount - (profitCut + pointOnePercent))
+      // console.log("user amount += -> ", totalSellAmount - (profitCut + pointOnePercent))
     } else {
       profitCut = userProfitOrLoss;
-      console.log("profitCut -> ", profitCut)
+      // console.log("profitCut -> ", profitCut)
       companyFeeType = "profitFromPlatformFees";
       // update user amount in db
       user.amount += totalSellAmount - pointOnePercent;
-      console.log("user amount += -> ", totalSellAmount - pointOnePercent)
+      // console.log("user amount += -> ", totalSellAmount - pointOnePercent)
       profitCut = Math.abs(profitCut)
     }
 
@@ -248,11 +248,11 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     }
 
     company.totalProfits += profitCut + pointOnePercent;
-    console.log("totalProfits += -> ", profitCut + pointOnePercent)
+    // console.log("totalProfits += -> ", profitCut + pointOnePercent)
     company.profitFromProfitableCuts += profitCut;
-    console.log("profitFromProfitableCuts -> ", profitCut)
+    // console.log("profitFromProfitableCuts -> ", profitCut)
     company.profitFromPlatformFees += pointOnePercent;
-    console.log("profitFromPlatformFees -> ", pointOnePercent)
+    // console.log("profitFromPlatformFees -> ", pointOnePercent)
 
     if (sellPrice == buyPrice * 0.5) {
       company.profitFromAutoSell += buyPrice * 0.5
@@ -263,7 +263,7 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     //   company.profitFromPlatformFees = (company.profitFromPlatformFees || 0) + fee;
     // }
     await company.save();
-    console.log("company saved")
+    // console.log("company saved")
 
     if (qtyToSell === quantityHeld) {
       // Sell the entire holding as before
