@@ -44,6 +44,7 @@ import paymentRoute from "./routes/paymentRoute.js"
 import portfolioRoute from "./routes/portfolioRoute.js"
 import adminRoute from "./routes/adminRoutes.js"
 import cricketRoute from "./routes/cricketRoute.js";
+import emailRoute from "./routes/emailRoute.js";
 import userRoute from "./routes/userRoute.js";
 
 app.use("/auth", authRoutes);
@@ -52,6 +53,8 @@ app.use("/portfolio", portfolioRoute);
 app.use("/payment", paymentRoute);
 app.use("/user", userRoute);
 app.use("/admin", adminRoute)
+app.use("/admin", adminRoute)
+app.use("/email", emailRoute)
 app.use("/cricket", cricketRoute);
 
 // Root Route
