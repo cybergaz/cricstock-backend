@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import { OAuth2Client } from "google-auth-library";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { findUserByPhone, findOtpByPhone, createNewUser, findReferral, decrypt } from "../services/actions.js";
+import { updateReferrerDetails } from "../services/actions.js";
 
 dotenv.config();
 
@@ -55,8 +56,8 @@ router.post("/send-otp", async (req, res) => {
       from: twilioNumber,
       to: formattedMobile
     })
-      .then(() => { })
-      .catch(console.error);
+    // .then(() => console.log(`OTP sent to ${formattedMobile} via Twilio...`))
+    // .catch(console.error);
 
     // handle Twilio errors with a timeout (but it's not working because it always times out)
     // function timeoutAfter(ms) {
@@ -116,16 +117,20 @@ router.post("/verify-otp", async (req, res) => {
     }
 
     // Referral code logic
+    let referralResult;
     if (referralCode) {
-      const referralResult = await findReferral(referralCode);
+      referralResult = await findReferral(referralCode);
       if (!referralResult.success) {
         return res.status(403).json({ message: "Invalid Referral Code" });
       }
     }
 
     // Only call createNewUser once, with correct params
-    const newUser = await createNewUser(name, mobile, email || null, password, referralCode);
+    const newUser = await createNewUser(name, mobile, email, password, referralCode);
     if (newUser.success) {
+      if (referralCode && referralResult.success) {
+        await updateReferrerDetails(referralResult.phone, referralCode)
+      }
       res.status(201).json({ message: "OTP verified and NEW USER created successfully" });
     } else if (!newUser.success && newUser.code == 403) {
       res.status(403).json({ message: "Invalid Referral Code" });
@@ -194,37 +199,6 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/is-admin", async (req, res) => {
-  const authHeader = req.header("Authorization");
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Access denied. No token provided." });
-  }
-
-  try {
-    const token = authHeader.split(" ")[1];
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
-
-    const user = await User.findOne({ _id: userId });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (!user.isAdmin) {
-      return res.status(403).json({ message: "Access denied" });
-    }
-
-    res.status(200).json({ message: "User is Admin" });
-    return
-  }
-  catch (err) {
-    console.error("❌ Error fetching user data:", err);
-    res.status(500).json({ message: "Error fetching user data" });
-  }
-}
-)
 
 router.post("/google-login", async (req, res) => {
   const { tokenId } = req.body;
@@ -510,20 +484,26 @@ router.post('/add-referral-code', authMiddleware, async (req, res) => {
         .status(401)
         .json({ message: "Unauthorized: No user data in token" });
     }
+
     const userId = req.user.userId;
     const { referralCode } = req.body;
+
     if (!referralCode) {
       return res.status(400).json({ message: "No Referral Code Found" });
     }
+
     const user = await User.findOne({ _id: userId });
     if (!user) {
       return res.status(404).json({ message: "No Such User Found" });
     }
+
     if (user.referralCodes && user.referralCodes.includes(referralCode)) {
       return res.status(409).json({ message: "Referral Code already added" });
     }
+
     user.referralCodes.push(referralCode);
     await user.save();
+
     return res.status(200).json({ message: "Added Referral Code" });
   } catch (error) {
     if (res.headersSent) {

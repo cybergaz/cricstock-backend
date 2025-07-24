@@ -18,9 +18,9 @@ const UserSchema = new mongoose.Schema({
   amount: { type: Number, default: 0 },
   referralAmount: { type: Number, default: 0 },
 
-  referredBy: { type: String },
+  referredBy: { type: String, default: "" },
   referralCodes: { type: [String], default: [] },
-  totalReferrals: { type: Number },
+  totalReferrals: { type: Number, default: 0 },
 
   transactions: [
     {

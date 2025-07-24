@@ -66,13 +66,13 @@ cron.schedule('0 0 * * 0', () => {
   competitions()
 });
 
-// cron.schedule('*/5 * * * * *', async () => {
-//   scorecards()
-// });
+cron.schedule('*/60 * * * * *', async () => {
+  todays()
+});
 
-// cron.schedule('*/60 * * * * *', async () => {
-//   todays()
-// });
+cron.schedule('*/5 * * * * *', async () => {
+  scorecards()
+});
 
 // function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {
 //   (async () => {

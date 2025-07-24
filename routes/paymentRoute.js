@@ -201,19 +201,29 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
       const txn = user.transactions[txnIndex];
       if (typeof txn.amount === "number") {
         if (user.referredBy !== "") {
-          const referralBonus = Math.min(txn.amount * 0.1, 1000);
-          user.referralAmount = referralBonus;
-          const referredUser = await User.findOne({ mobile: user.referredBy });
-          referredUser.referralAmount += referralBonus;
-          await referredUser.save();
+          let referral_amount = txn.amount * 0.1
+          const referredByUser = await User.findOne({ mobile: user.referredBy });
+          if (referral_amount > 1000) {
+            user.referralAmount += 1000
+            referredByUser.referralAmount += 1000;
+          }
+          user.referralAmount += txn.amount * 0.1;
+          referredByUser.referralAmount += txn.amount * 0.1
+
+          await referredByUser.save()
         }
         user.amount += Number(txn.amount);
+        // empty the referredBy field if the transaction is completed to avoid multiple referral amounts
+        user.referredBy = ""
       }
     }
+
     user.transactions[txnIndex].status = status;
     user.transactions[txnIndex].date = new Date();
     user.lastSeen = new Date();
+
     await user.save();
+
     res.status(200).json({
       success: true,
       message: `Transaction ${status}`
