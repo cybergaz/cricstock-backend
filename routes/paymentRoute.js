@@ -202,10 +202,11 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
       const txn = user.transactions[txnIndex];
       if (typeof txn.amount === "number") {
         if (user.referredBy !== "") {
-          user.referralAmount = txn.amount * 0.1
+          const referralBonus = Math.min(txn.amount * 0.1, 1000);
+          user.referralAmount = referralBonus;
           const referredUser = await User.findOne({ mobile: user.referredBy });
-          referredUser.referralAmount += txn.amount * 0.1
-          await referredUser.save()
+          referredUser.referralAmount += referralBonus;
+          await referredUser.save();
         }
         user.amount += Number(txn.amount);
       }
