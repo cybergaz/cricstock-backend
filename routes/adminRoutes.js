@@ -67,6 +67,45 @@ router.get('/company-statement', authMiddleware, async (req, res) => {
   try {
     const company_stats = await Company.findOne({ name: "cricstock11" });
     // console.log("company_stats -> ", company_stats)
+    const result = await User.aggregate([
+      {
+        $facet: {
+          totalUserAmount: [
+            {
+              $group: {
+                _id: null,
+                total: { $sum: "$amount" },
+              },
+            },
+          ],
+          totalCompletedDeposits: [
+            { $unwind: "$transactions" },
+            {
+              $match: {
+                "transactions.status": "Completed",
+                "transactions.type": "Deposit",
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: "$transactions.amount" },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          totalUserAmount: { $arrayElemAt: ["$totalUserAmount.total", 0] },
+          totalCompletedDeposits: { $arrayElemAt: ["$totalCompletedDeposits.total", 0] },
+        },
+      },
+    ]);
+
+    console.log(result[0]);
+
+    const gross_profit = result[0].totalCompletedDeposits - result[0].totalUserAmount
 
     res.status(200).json({
       message: 'Company statistics retrieved successfully',
@@ -75,7 +114,8 @@ router.get('/company-statement', authMiddleware, async (req, res) => {
         totalProfits: company_stats.totalProfits.toFixed(2),
         profitFromPlatformFees: company_stats.profitFromPlatformFees.toFixed(2),
         profitFromProfitableCuts: company_stats.profitFromProfitableCuts.toFixed(2),
-        profitFromAutoSell: company_stats.profitFromAutoSell.toFixed(2)
+        profitFromAutoSell: company_stats.profitFromAutoSell.toFixed(2),
+        grossProfit: gross_profit.toFixed(2)
       }
     });
   } catch (error) {
