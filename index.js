@@ -70,7 +70,7 @@ cron.schedule('*/5 * * * * *', async () => {
   todays()
 });
 
-cron.schedule('*/2 * * * * *', async () => {
+cron.schedule('*/3 * * * * *', async () => {
   scorecards()
 });
 
