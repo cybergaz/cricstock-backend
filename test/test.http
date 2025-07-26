@@ -1,0 +1,11 @@
+###
+POST https://whatsamplify.com/webhook/whatsapp-workflow/172558.195534.211071.1753514544
+Content-Type: application/json
+key: cricstock11@12
+
+{
+  "otp": "123456",
+  "mobile": "918889981608"
+}
+
+###

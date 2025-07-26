@@ -15,6 +15,7 @@
     "@aws-sdk/client-cognito-identity-provider": "^3.772.0",
     "@aws-sdk/client-dynamodb": "^3.772.0",
     "@aws-sdk/client-sns": "^3.772.0",
+    "@aws-sdk/lib-storage": "^3.850.0",
     "@cashfreepayments/cashfree-js": "^1.0.5",
     "amazon-cognito-identity-js": "^6.3.12",
     "aws-sdk": "^2.1692.0",

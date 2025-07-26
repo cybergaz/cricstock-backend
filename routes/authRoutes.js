@@ -282,22 +282,10 @@ router.post('/logout', (req, res) => {
   res.status(200).json({ message: 'Logged out' });
 });
 
-router.get("/is-admin", async (req, res) => {
-  const authHeader = req.header("Authorization");
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Access denied. No token provided." });
-  }
-
+router.get("/is-admin", authMiddleware, async (req, res) => {
   try {
-    const token = authHeader.split(" ")[1];
-
-    // Verify JWT Token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
-
     // Find user by ID in MongoDB
-    const user = await User.findOne({ _id: userId });
+    const user = await User.findOne({ _id: req.user.userId });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -306,8 +294,13 @@ router.get("/is-admin", async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    res.status(200).json({ message: "User is Admin", username: user.name });
-    return
+    res.status(200).json({
+      message: "User is Admin",
+      data: {
+        name: user.name,
+        role: user.role,
+      }
+    });
   }
   catch (err) {
     console.error("❌ Error fetching user data:", err);
@@ -382,22 +375,22 @@ router.get("/user", authMiddleware, async (req, res) => {
     if (!req.user || !req.user.userId) {
       return res
         .status(401)
-        .json({ message: "Unauthorized: No user data in token" });
+        .json({ success: false, message: "Unauthorized: No user data in token" });
     }
 
     const userId = req.user.userId;
 
     // Find user by ID in MongoDB
-    const user = await User.findById(userId).select("-password");
+    const user = await User.findById(userId).select("name mobile lastSeen email profileImage amount referralAmount -_id");
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    res.status(200).json({ user });
+    res.status(200).json({ success: true, user });
   } catch (err) {
     console.error("❌ Error fetching user data:", err);
-    res.status(500).json({ message: "Error fetching user data" });
+    res.status(500).json({ success: false, message: "Error fetching user data" });
   }
 });
 
