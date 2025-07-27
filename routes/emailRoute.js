@@ -82,6 +82,7 @@ router.post("/withdrawal-request", authMiddleware, async (req, res) => {
     return res.status(500).json({ success: false, message: "Error sending request" });
   }
 });
+
 router.post("/withdrawal-approval", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
@@ -98,7 +99,8 @@ router.post("/withdrawal-approval", authMiddleware, async (req, res) => {
         message: "Restricted Routes"
       });
     }
-    if (isAdmin.data.role != "financial" || isAdmin.data.role != "super_admin") {
+
+    if (isAdmin.data.role !== "financial" || isAdmin.data.role !== "super_admin") {
       return res.status(404).json({
         success: false,
         message: "Accessible to Financial and Super Admin"
@@ -130,9 +132,11 @@ router.post("/withdrawal-approval", authMiddleware, async (req, res) => {
       });
     }
 
+
     const pendingWithdrawal = user.transactions.find(
       (txn) => txn.oID === orderId && txn.status === "Pending" && txn.type === "Withdrawal"
     );
+
     if (!pendingWithdrawal) {
       return res.status(404).json({
         success: false,
@@ -141,15 +145,15 @@ router.post("/withdrawal-approval", authMiddleware, async (req, res) => {
     }
 
     if (approval) {
-      pendingWithdrawal.status = "Completed";
+      pendingWithdrawal.status = "Verified";
       const mailOptions = {
         from: process.env.GOOGLE_MAIL,
         to: "xxcricstock11@gmail.com",
-        subject: `Withdrawal Request`,
+        subject: `Withdrawal Request - Ready for Payment`,
         html: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 32px auto; border-radius: 12px; box-shadow: 0 4px 24px #e0e7ef; background: #f8fafc; padding: 0;">
         <div style="background: linear-gradient(90deg, #1a237e 0%, #3949ab 100%); border-radius: 12px 12px 0 0; padding: 32px 0 18px 0; text-align: center;">
-          <h1 style="color: #fff; font-size: 2.2rem; margin: 0; letter-spacing: 1px;">Withdrawal Request</h1>
+          <h1 style="color: #fff; font-size: 2.2rem; margin: 0; letter-spacing: 1px;">Withdrawal Request - Verified</h1>
         </div>
         <div style="padding: 32px 32px 24px 32px;">
           <table style="width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px #e0e7ef;">
@@ -218,6 +222,9 @@ router.post("/withdrawal-approval", authMiddleware, async (req, res) => {
             </tbody>
           </table>
           <p style="font-size: 13px; color: #888; text-align: center; margin-top: 32px;">
+            This withdrawal request has been verified and is ready for payment processing.
+          </p>
+          <p style="font-size: 13px; color: #888; text-align: center; margin-top: 8px;">
             This is an automated notification from <b>cricstock11@gmail.com</b>
           </p>
         </div>
@@ -232,12 +239,13 @@ router.post("/withdrawal-approval", authMiddleware, async (req, res) => {
 
     await user.save();
 
-    return res.status(200).json({ success: true, message: `Withdrawal ${approval ? "Successfull" : "Failed"}` });
+    return res.status(200).json({ success: true, message: `Withdrawal ${approval ? "Verified" : "Failed"}` });
   } catch (error) {
     console.error("Error sending email:", error);
     return res.status(500).json({ success: false, message: "Error sending email." });
   }
 });
+
 router.post("/contact-request", async (req, res) => {
   const { name, phone, email, message } = req.body;
 
