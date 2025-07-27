@@ -31,6 +31,7 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
         totalProfits: 0,
         profitFromPlatformFees: 0,
         profitFromProfitableCuts: 0,
+        profitFromUserLoss: 0,
         profitFromAutoSell: 0
       });
       await company.save();
@@ -221,11 +222,14 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     // console.log("userProfitOrLoss -> ", userProfitOrLoss)
 
     let profitCut = 0;
+    let profitFrom5cut = 0;
+    let profitFromUserLoss = 0;
     let companyFeeType = "";
 
     if (userProfitOrLoss > 0) {
       // 5% of profit
       profitCut = userProfitOrLoss * 0.05;
+      profitFrom5cut = profitCut;
       // console.log("profitCut -> ", profitCut)
       companyFeeType = "profitFromProfitableCuts";
       // update user amount in db
@@ -239,17 +243,19 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
       user.amount += totalSellAmount - pointOnePercent;
       // console.log("user amount += -> ", totalSellAmount - pointOnePercent)
       profitCut = Math.abs(profitCut)
+      profitFromUserLoss = profitCut;
     }
 
     // Update company profit
     let company = await Company.findOne({ name: "cricstock11" });
     if (!company) {
-      company = new Company({ name: "cricstock11", totalProfits: 0, profitFromPlatformFees: 0, profitFromProfitableCuts: 0, profitFromAutoSell: 0 });
+      company = new Company({ name: "cricstock11", totalProfits: 0, profitFromPlatformFees: 0, profitFromProfitableCuts: 0, profitFromUserLoss: 0, profitFromAutoSell: 0 });
     }
 
     company.totalProfits += profitCut + pointOnePercent;
     // console.log("totalProfits += -> ", profitCut + pointOnePercent)
-    company.profitFromProfitableCuts += profitCut;
+    company.profitFromProfitableCuts += profitFrom5cut;
+    company.profitFromUserLoss += profitFromUserLoss;
     // console.log("profitFromProfitableCuts -> ", profitCut)
     company.profitFromPlatformFees += pointOnePercent;
     // console.log("profitFromPlatformFees -> ", pointOnePercent)

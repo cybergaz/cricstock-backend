@@ -89,7 +89,8 @@ router.post("/order/create",
         message: error
       });
     }
-});
+  });
+
 router.patch("/order/terminate/:order_id", async (req, res) => {
   try {
     const { order_id } = req.params;
@@ -121,6 +122,7 @@ router.patch("/order/terminate/:order_id", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {

@@ -79,6 +79,7 @@ router.get('/total-active-users', async (req, res) => {
 router.get('/company-statement', authMiddleware, async (req, res) => {
   try {
     const company_stats = await Company.findOne({ name: "cricstock11" });
+    console.log("company_stats -> ", company_stats)
     // console.log("company_stats -> ", company_stats)
     const result = await User.aggregate([
       {
@@ -127,6 +128,7 @@ router.get('/company-statement', authMiddleware, async (req, res) => {
         totalProfits: company_stats.totalProfits.toFixed(2),
         profitFromPlatformFees: company_stats.profitFromPlatformFees.toFixed(2),
         profitFromProfitableCuts: company_stats.profitFromProfitableCuts.toFixed(2),
+        profitFromUserLoss: company_stats.profitFromUserLoss.toFixed(2),
         profitFromAutoSell: company_stats.profitFromAutoSell.toFixed(2),
         grossProfit: gross_profit.toFixed(2)
       }

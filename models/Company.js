@@ -1,11 +1,12 @@
 import mongoose from "mongoose";
 
 const CompanySchema = new mongoose.Schema({
-  name: { type: String },
-  totalProfits: { type: Number },
-  profitFromPlatformFees: { type: Number },
-  profitFromAutoSell: { type: Number },
-  profitFromProfitableCuts: { type: Number },
+  name: { type: String, default: "cricstock11" },
+  totalProfits: { type: Number, default: 0 },
+  profitFromPlatformFees: { type: Number, default: 0 },
+  profitFromAutoSell: { type: Number, default: 0 },
+  profitFromProfitableCuts: { type: Number, default: 0 },
+  profitFromUserLoss: { type: Number, default: 0 }
 });
 
 
