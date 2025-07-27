@@ -3,6 +3,7 @@ import { User, OtpRequest } from "../models/User.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import twilio from "twilio";
+import axios from 'axios';
 import dotenv from "dotenv";
 import { OAuth2Client } from "google-auth-library";
 import authMiddleware from "../middlewares/authMiddleware.js";
@@ -51,11 +52,27 @@ router.post("/send-otp", async (req, res) => {
 
     await otp.save();
 
-    twilioClient.messages.create({
-      body: `Your OTP for Cricstock is: ${gen_otp}`,
-      from: twilioNumber,
-      to: formattedMobile
-    })
+    // twilioClient.messages.create({
+    //   body: `Your OTP for Cricstock is: ${gen_otp}`,
+    //   from: twilioNumber,
+    //   to: formattedMobile
+    // })
+
+    axios.post(
+      process.env.WHATSAMPLIFY_URL,
+      {
+        otp: gen_otp,
+        mobile: formattedMobile.replace(/^\+/, ""),
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          key: 'cricstock11@12',
+        },
+      }
+    ).catch((error) => {
+      console.error('Error:', error.response?.data || error.message);
+    });
     // .then(() => console.log(`OTP sent to ${formattedMobile} via Twilio...`))
     // .catch(console.error);
 
