@@ -66,11 +66,11 @@ cron.schedule('0 0 * * 0', () => {
   competitions()
 });
 
-cron.schedule('*/5 * * * * *', async () => {
+cron.schedule('*/4 * * * * *', async () => {
   todays()
 });
 
-cron.schedule('*/3 * * * * *', async () => {
+cron.schedule('*/2 * * * * *', async () => {
   scorecards()
 });
 
