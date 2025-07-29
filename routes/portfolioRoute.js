@@ -324,6 +324,13 @@ router.get("/all", authMiddleware, async (req, res) => {
         message: "Unauthorized: No user data in token"
       });
     }
+
+    const { page = 1, limit = 10, status } = req.query;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Use aggregation pipeline for optimized queries
     const user = await User.findById(req.user.userId).select();
     if (!user) {
       return res.status(404).json({
@@ -331,34 +338,86 @@ router.get("/all", authMiddleware, async (req, res) => {
         message: "No Such User"
       });
     }
-    const playerPortfolios = (user.playerPortfolios || [])
+
+    // Optimized processing using array methods
+    const allPlayerPortfolios = (user.playerPortfolios || [])
       .slice()
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      .slice(0, 10);
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Separate active and history portfolios efficiently
+    const activePlayers = [];
+    const playerHistory = [];
+
+    for (const portfolio of allPlayerPortfolios) {
+      if ((portfolio.status || "").toLowerCase() === "buy") {
+        activePlayers.push(portfolio);
+      } else {
+        playerHistory.push(portfolio);
+      }
+    }
+
+    // Apply pagination to history
+    const totalHistoryCount = playerHistory.length;
+    const paginatedPlayerHistory = playerHistory.slice(skip, skip + limitNum);
+
+    // Process team portfolios
     const teamPortfolios = (user.teamPortfolios || [])
       .slice()
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      .slice(0, 10);
-    const depositedAmount = Array.isArray(user.transactions)
-      ? user.transactions
-        .filter(txn => txn.type === "Deposit" && txn.status === "Completed")
-        .reduce((sum, txn) => sum + (Number(txn.amount) || 0), 0)
-      : 0;
-    const playerProfits = (user.playerPortfolios || [])
-      .filter(p => p.status == "Sold")
-      .reduce((sum, p) => sum + ((Number(p.profit) || 0)), 0);
-    const teamProfits = (user.teamPortfolios || [])
-      .filter(p => p.status == "Sold")
-      .reduce((sum, p) => sum + ((Number(p.profit) || 0)), 0);
-    const totalProfits = playerProfits + teamProfits
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-    const totalPortfolioProfit = user.amount - depositedAmount
+    const activeTeams = [];
+    const teamHistory = [];
+
+    for (const portfolio of teamPortfolios) {
+      if ((portfolio.status || "").toLowerCase() === "buy") {
+        activeTeams.push(portfolio);
+      } else {
+        teamHistory.push(portfolio);
+      }
+    }
+
+    // Calculate profits efficiently in single pass
+    let playerProfits = 0;
+    let teamProfits = 0;
+
+    for (const portfolio of playerHistory) {
+      playerProfits += Number(portfolio.profit) || 0;
+    }
+
+    for (const portfolio of teamHistory) {
+      teamProfits += Number(portfolio.profit) || 0;
+    }
+
+    const totalProfits = playerProfits + teamProfits;
+
+    // Calculate deposited amount efficiently
+    let depositedAmount = 0;
+    if (Array.isArray(user.transactions)) {
+      for (const txn of user.transactions) {
+        if (txn.type === "Deposit" && txn.status === "Completed") {
+          depositedAmount += Number(txn.amount) || 0;
+        }
+      }
+    }
+
+    const totalPortfolioProfit = user.amount - depositedAmount;
+
     res.status(200).json({
       success: true,
       message: "Portfolios Fetched",
-      playerPortfolios,
+      playerPortfolios: activePlayers,
+      playerHistory: paginatedPlayerHistory,
+      playerHistoryPagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalHistoryCount / limitNum),
+        totalItems: totalHistoryCount,
+        itemsPerPage: limitNum,
+        hasNextPage: skip + limitNum < totalHistoryCount,
+        hasPrevPage: pageNum > 1
+      },
+      teamPortfolios: activeTeams,
+      teamHistory,
       totalPortfolioProfit,
-      teamPortfolios,
       value: (Number(user.amount) + Number(user.referralAmount)),
       profit: totalProfits
     });

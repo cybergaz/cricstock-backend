@@ -66,7 +66,7 @@ cron.schedule('0 0 * * 0', () => {
   competitions()
 });
 
-cron.schedule('*/4 * * * * *', async () => {
+cron.schedule('*/5 * * * * *', async () => {
   todays()
 });
 

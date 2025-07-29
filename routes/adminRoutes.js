@@ -107,12 +107,51 @@ router.get('/company-statement', authMiddleware, async (req, res) => {
               },
             },
           ],
+          totalSoldPortfolioProfit: [
+            {
+              $project: {
+                playerPortfolioProfit: {
+                  $reduce: {
+                    input: {
+                      $filter: {
+                        input: "$playerPortfolios",
+                        as: "portfolio",
+                        cond: { $eq: ["$$portfolio.status", "Sold"] }
+                      }
+                    },
+                    initialValue: 0,
+                    in: { $add: ["$$value", { $toDouble: "$$this.profit" }] }
+                  }
+                },
+                teamPortfolioProfit: {
+                  $reduce: {
+                    input: {
+                      $filter: {
+                        input: "$teamPortfolios",
+                        as: "portfolio",
+                        cond: { $eq: ["$$portfolio.status", "Sold"] }
+                      }
+                    },
+                    initialValue: 0,
+                    in: { $add: ["$$value", { $toDouble: "$$this.profit" }] }
+                  }
+                }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: { $add: ["$playerPortfolioProfit", "$teamPortfolioProfit"] } }
+              }
+            }
+          ]
         },
       },
       {
         $project: {
           totalUserAmount: { $arrayElemAt: ["$totalUserAmount.total", 0] },
           totalCompletedDeposits: { $arrayElemAt: ["$totalCompletedDeposits.total", 0] },
+          totalSoldPortfolioProfit: { $arrayElemAt: ["$totalSoldPortfolioProfit.total", 0] },
         },
       },
     ]);
@@ -130,7 +169,8 @@ router.get('/company-statement', authMiddleware, async (req, res) => {
         profitFromProfitableCuts: company_stats.profitFromProfitableCuts.toFixed(2),
         profitFromUserLoss: company_stats.profitFromUserLoss.toFixed(2),
         profitFromAutoSell: company_stats.profitFromAutoSell.toFixed(2),
-        grossProfit: gross_profit.toFixed(2)
+        grossProfit: gross_profit.toFixed(2),
+        totalSoldPortfolioProfit: (result[0].totalSoldPortfolioProfit || 0).toFixed(2)
       }
     });
   } catch (error) {
