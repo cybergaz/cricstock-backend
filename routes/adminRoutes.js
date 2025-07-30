@@ -157,19 +157,17 @@ router.get('/company-statement', authMiddleware, async (req, res) => {
     ]);
 
     // console.log(result[0]);
-
-    const gross_profit = result[0].totalCompletedDeposits - result[0].totalUserAmount
-
     res.status(200).json({
       message: 'Company statistics retrieved successfully',
       data: {
         name: company_stats.name,
         totalProfits: company_stats.totalProfits.toFixed(2),
+        totalTdsCut: company_stats.totalTdsCut.toFixed(2),
         profitFromPlatformFees: company_stats.profitFromPlatformFees.toFixed(2),
         profitFromProfitableCuts: company_stats.profitFromProfitableCuts.toFixed(2),
         profitFromUserLoss: company_stats.profitFromUserLoss.toFixed(2),
         profitFromAutoSell: company_stats.profitFromAutoSell.toFixed(2),
-        grossProfit: gross_profit.toFixed(2),
+        usersCurrentAmount: result[0].totalUserAmount.toFixed(2),
         totalSoldPortfolioProfit: (result[0].totalSoldPortfolioProfit || 0).toFixed(2)
       }
     });
@@ -401,7 +399,7 @@ router.get('/fetch-total-transactions', authMiddleware, async (req, res) => {
           if (trx.type === "Deposit") {
             depositAmount += trx.amount;
             completedDeposit++;
-          } else if (trx.type === "Withdraw") {
+          } else if (trx.type === "Withdrawal") {
             withdrawAmount += trx.amount;
             completedWithdraw++;
           }
@@ -409,14 +407,14 @@ router.get('/fetch-total-transactions', authMiddleware, async (req, res) => {
         if (trx.status === "Pending") {
           if (trx.type === "Deposit") {
             pendingDeposit++;
-          } else if (trx.type === "Withdraw") {
+          } else if (trx.type === "Withdrawal") {
             pendingWithdraw++;
           }
         }
         if (trx.status === "Failed") {
           if (trx.type === "Deposit") {
             failedDeposit++;
-          } else if (trx.type === "Withdraw") {
+          } else if (trx.type === "Withdrawal") {
             failedWithdraw++;
           }
         }
@@ -424,7 +422,7 @@ router.get('/fetch-total-transactions', authMiddleware, async (req, res) => {
         if (trx.type === "Deposit" && trx.status === "Completed") {
           depositUsers++;
         }
-        if (trx.type === "Withdraw" && trx.status === "Completed") {
+        if (trx.type === "Withdrawal" && trx.status === "Completed") {
           withdrawUsers++;
         }
 

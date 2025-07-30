@@ -285,7 +285,19 @@ const Scorecards = new mongoose.Schema({
     role: { type: String, default: '' },
     role_str: { type: String, default: '' },
   }],
-  match_notes: [[String]]
+  match_notes: [[String]],
+  
+  // Team stock price tracking
+  teamStockPrices: {
+    teama: { type: Number, default: 50 },
+    teamb: { type: Number, default: 50 }
+  },
+  
+  // Track last processed events to avoid duplicate processing
+  lastProcessedEvents: {
+    teama: { type: String, default: "" },
+    teamb: { type: String, default: "" }
+  }
 });
 
 

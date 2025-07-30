@@ -4,6 +4,7 @@ import { User } from "../models/User.js";
 import { Company } from "../models/Company.js";
 const router = express.Router();
 
+// buy player stocks --------------------------------------------------------------------------------------------
 router.post("/buy-player", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
@@ -133,6 +134,7 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
   }
 });
 
+// sell player stocks --------------------------------------------------------------------------------------------
 router.post("/sell-player", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
@@ -221,6 +223,7 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     const userProfitOrLoss = totalSellAmount - totalBuyAmount;
     // console.log("userProfitOrLoss -> ", userProfitOrLoss)
 
+    let tdsCut = 0;
     let profitCut = 0;
     let profitFrom5cut = 0;
     let profitFromUserLoss = 0;
@@ -228,12 +231,13 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
 
     if (userProfitOrLoss > 0) {
       // 5% of profit
-      profitCut = userProfitOrLoss * 0.05;
+      tdsCut = userProfitOrLoss * 0.3;
+      profitCut = (userProfitOrLoss - tdsCut) * 0.05;
       profitFrom5cut = profitCut;
       // console.log("profitCut -> ", profitCut)
       companyFeeType = "profitFromProfitableCuts";
       // update user amount in db
-      user.amount += totalSellAmount - (profitCut + pointOnePercent);
+      user.amount += totalSellAmount - (tdsCut + profitCut + pointOnePercent);
       // console.log("user amount += -> ", totalSellAmount - (profitCut + pointOnePercent))
     } else {
       profitCut = userProfitOrLoss;
@@ -249,11 +253,12 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     // Update company profit
     let company = await Company.findOne({ name: "cricstock11" });
     if (!company) {
-      company = new Company({ name: "cricstock11", totalProfits: 0, profitFromPlatformFees: 0, profitFromProfitableCuts: 0, profitFromUserLoss: 0, profitFromAutoSell: 0 });
+      company = new Company({ name: "cricstock11", totalProfits: 0, totalTdsCut: 0, profitFromPlatformFees: 0, profitFromProfitableCuts: 0, profitFromUserLoss: 0, profitFromAutoSell: 0 });
     }
 
-    company.totalProfits += profitCut + pointOnePercent;
+    company.totalProfits += tdsCut + profitCut + pointOnePercent;
     // console.log("totalProfits += -> ", profitCut + pointOnePercent)
+    company.totalTdsCut += tdsCut;
     company.profitFromProfitableCuts += profitFrom5cut;
     company.profitFromUserLoss += profitFromUserLoss;
     // console.log("profitFromProfitableCuts -> ", profitCut)
@@ -390,17 +395,26 @@ router.get("/all", authMiddleware, async (req, res) => {
 
     const totalProfits = playerProfits + teamProfits;
 
-    // Calculate deposited amount efficiently
-    let depositedAmount = 0;
-    if (Array.isArray(user.transactions)) {
-      for (const txn of user.transactions) {
-        if (txn.type === "Deposit" && txn.status === "Completed") {
-          depositedAmount += Number(txn.amount) || 0;
+    // Calculate total portfolio profit from sold portfolios
+    let totalPortfolioProfit = 0;
+
+    // Sum profits from sold player portfolios
+    if (Array.isArray(user.playerPortfolios)) {
+      for (const portfolio of user.playerPortfolios) {
+        if (portfolio.status === "Sold" && portfolio.profit) {
+          totalPortfolioProfit += Number(portfolio.profit) || 0;
         }
       }
     }
 
-    const totalPortfolioProfit = user.amount - depositedAmount;
+    // Sum profits from sold team portfolios
+    if (Array.isArray(user.teamPortfolios)) {
+      for (const portfolio of user.teamPortfolios) {
+        if (portfolio.status === "Sold" && portfolio.profit) {
+          totalPortfolioProfit += Number(portfolio.profit) || 0;
+        }
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -439,7 +453,6 @@ router.get("/all", authMiddleware, async (req, res) => {
 /*-------------------------------- Upcoming Feature -------------------------------------------------------*/
 router.post("/buy-team", authMiddleware, async (req, res) => {
   try {
-    return
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -454,47 +467,76 @@ router.post("/buy-team", authMiddleware, async (req, res) => {
       });
     }
 
+    if (typeof user.amount === "undefined" || isNaN(Number(user.amount))) {
+      user.amount = 0;
+    }
+
     let company = await Company.findOne({ name: "cricstock11" });
     if (!company) {
       company = new Company({
         name: "cricstock11",
-        totalProfits: 0
+        totalProfits: 0,
+        totalTdsCut: 0,
+        profitFromPlatformFees: 0,
+        profitFromProfitableCuts: 0,
+        profitFromUserLoss: 0,
+        profitFromAutoSell: 0
       });
       await company.save();
     }
+
     const { team, price, quantity, match_id } = req.body;
-    const onePercent = Number(quantity) * Number(price) * 0.01;
-    company.totalProfits += onePercent
-    await company.save();
-    if (!Array.isArray(user.teamPortfolios)) {
-      user.teamPortfolios = [];
+
+    let bucket = quantity * price
+    let pointOnePercent = bucket * 0.001;
+
+    if (pointOnePercent < 5) {
+      pointOnePercent = 5
+    } else if (pointOnePercent > 20) {
+      pointOnePercent = 20
     }
-    if (user.amount < quantity * price) {
+
+    if ((bucket + pointOnePercent) > (user.amount + user.referralAmount)) {
       return res.status(400).json({
         success: false,
         message: `Insufficient balance, Balance ₹${user.amount}`,
       });
     }
-    // Normalize for comparison
-    const teamIdStr = String(team.batsman_id).trim();
+
+    company.profitFromPlatformFees += pointOnePercent;
+    company.totalProfits += pointOnePercent;
+    await company.save();
+
+    bucket += pointOnePercent;
+
+    if (user.referralAmount >= bucket) {
+      user.referralAmount -= bucket;
+    } else {
+      const remaining = bucket - user.referralAmount;
+      user.referralAmount = 0;
+      user.amount -= remaining;
+    }
+
+    if (!Array.isArray(user.teamPortfolios)) {
+      user.teamPortfolios = [];
+    }
+
+    const teamIdStr = String(team.team_id).trim();
     const matchIdStr = String(match_id).trim();
     const qtyToAdd = Number(quantity);
     const buyPrice = Number(price);
-    // Find if portfolio exists
     const portfolioIndex = user.teamPortfolios.findIndex(
-      (portfolio) => String(portfolio.teamId).trim() === teamIdStr && String(portfolio.matchId).trim() === matchIdStr && portfolio.status !== "Sold"
+      (portfolio) => String(portfolio.team).trim() === teamIdStr && String(portfolio.matchId).trim() === matchIdStr && portfolio.status !== "Sold"
     );
+
     if (portfolioIndex !== -1) {
-      // Update existing entry: increment quantity, recalculate average price
       let portfolio = user.teamPortfolios[portfolioIndex];
       const prevQty = Number(portfolio.quantity) || 0;
       const prevPrice = Number(portfolio.boughtPrice) || 0;
       const newQty = prevQty + qtyToAdd;
-      // Weighted average price
       const avgPrice = ((prevQty * prevPrice) + (qtyToAdd * buyPrice)) / newQty;
       portfolio.quantity = String(newQty);
       portfolio.boughtPrice = avgPrice.toFixed(2);
-      // Profit and percentage (if soldPrice exists)
       let profit = "";
       let profitPercentage = "";
       if (portfolio.soldPrice) {
@@ -506,10 +548,9 @@ router.post("/buy-team", authMiddleware, async (req, res) => {
       portfolio.profitPercentage = profitPercentage;
       portfolio.timestamp = String(new Date());
     } else {
-      // Create new entry
       const teamPortfolio = {
         matchId: match_id,
-        teamId: team.batsman_id,
+        team: team.team_id,
         teamName: team.name,
         quantity: String(quantity),
         boughtPrice: price,
@@ -522,12 +563,6 @@ router.post("/buy-team", authMiddleware, async (req, res) => {
       };
       user.teamPortfolios.push(teamPortfolio);
     }
-
-    const amountToDeduct = quantity * price;
-    if (typeof user.amount === "undefined" || isNaN(Number(user.amount))) {
-      user.amount = 0;
-    }
-    user.amount = Number(user.amount) - amountToDeduct;
 
     await user.save();
 
@@ -545,7 +580,6 @@ router.post("/buy-team", authMiddleware, async (req, res) => {
 });
 router.post("/sell-team", authMiddleware, async (req, res) => {
   try {
-    return
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -560,28 +594,42 @@ router.post("/sell-team", authMiddleware, async (req, res) => {
       });
     }
 
+    if (typeof user.amount === "undefined" || isNaN(Number(user.amount))) {
+      user.amount = 0;
+    }
+
     const { team, price, quantity, match_id } = req.body;
+
+    let bucket = quantity * price
+    let pointOnePercent = bucket * 0.001;
+
+    if (pointOnePercent < 5) {
+      pointOnePercent = 5
+    } else if (pointOnePercent > 20) {
+      pointOnePercent = 20
+    }
+
     if (!Array.isArray(user.teamPortfolios)) {
       user.teamPortfolios = [];
     }
-    // Normalize for comparison
-    const teamIdStr = String(team.batsman_id).trim();
+
+    const teamIdStr = String(team.team_id).trim();
     const matchIdStr = String(match_id).trim();
     const qtyToSell = Number(quantity);
     const sellPrice = Number(price);
-    // Find if portfolio exists and is not already sold
+
     const portfolioIndex = user.teamPortfolios.findIndex(
-      (portfolio) => String(portfolio.teamId).trim() === teamIdStr && String(portfolio.matchId).trim() === matchIdStr && portfolio.status !== "Sold"
+      (portfolio) => String(portfolio.team).trim() === teamIdStr && String(portfolio.matchId).trim() === matchIdStr && portfolio.status !== "Sold"
     );
+
     if (portfolioIndex === -1) {
       return res.status(404).json({
         success: false,
         message: "No Current Holding"
       });
     }
-    // Update the found portfolio entry with new data from req
+
     let portfolio = user.teamPortfolios[portfolioIndex];
-    // Calculate profit and profitPercentage
     const buyPrice = Number(portfolio.boughtPrice) || 0;
     const quantityHeld = Number(portfolio.quantity) || 0;
     let profit = "";
@@ -590,51 +638,62 @@ router.post("/sell-team", authMiddleware, async (req, res) => {
       profit = ((sellPrice - buyPrice) * quantityHeld).toFixed(2);
       profitPercentage = buyPrice !== 0 ? (((sellPrice - buyPrice) / buyPrice) * 100).toFixed(2) : "";
     }
-    // Check if requested quantity to sell is greater than available
+
     if (qtyToSell > quantityHeld) {
       return res.status(400).json({
         success: false,
         message: `You only have ${quantityHeld} stocks available to sell.`
       });
     }
+
     let soldMessage = "";
-    // Calculate the amount to add to user's amount
-    const amountToAdd = qtyToSell * sellPrice;
-    if (typeof user.amount === "undefined" || isNaN(Number(user.amount))) {
-      user.amount = 0;
-    }
-    // Calculate profit for this sell
-    let profitOnSell = (sellPrice - buyPrice) * qtyToSell;
-    let companyShare = 0;
-    if (profitOnSell > 0) {
-      companyShare = profitOnSell * 0.05;
-    }
-    // Deduct company share from amount to add to user
-    const amountToAddAfterCompany = amountToAdd - companyShare;
-    user.amount = Number(user.amount) + amountToAddAfterCompany;
+    let totalSellAmount = qtyToSell * sellPrice;
+    let totalBuyAmount = qtyToSell * buyPrice;
+    const userProfitOrLoss = totalSellAmount - totalBuyAmount;
 
-    if (companyShare > 0) {
-      let company = await Company.findOne({});
-      if (!company) {
-        company = new Company({ name: "Main", totalProfits: 0 });
-      }
-      company.totalProfits += companyShare;
-      await company.save();
+    let profitCut = 0;
+    let profitFrom5cut = 0;
+    let profitFromUserLoss = 0;
+    let companyFeeType = "";
+
+    if (userProfitOrLoss > 0) {
+      profitCut = userProfitOrLoss * 0.05;
+      profitFrom5cut = profitCut;
+      companyFeeType = "profitFromProfitableCuts";
+      user.amount += totalSellAmount - (profitCut + pointOnePercent);
+    } else {
+      profitCut = userProfitOrLoss;
+      companyFeeType = "profitFromPlatformFees";
+      user.amount += totalSellAmount - pointOnePercent;
+      profitCut = Math.abs(profitCut)
+      profitFromUserLoss = profitCut;
     }
 
-    user.amount = Number(user.amount) + amountToAdd;
+    let company = await Company.findOne({ name: "cricstock11" });
+    if (!company) {
+      company = new Company({ name: "cricstock11", totalProfits: 0, profitFromPlatformFees: 0, profitFromProfitableCuts: 0, profitFromUserLoss: 0, profitFromAutoSell: 0 });
+    }
+
+    company.totalProfits += profitCut + pointOnePercent;
+    company.profitFromProfitableCuts += profitFrom5cut;
+    company.profitFromUserLoss += profitFromUserLoss;
+    company.profitFromPlatformFees += pointOnePercent;
+
+    if (sellPrice == buyPrice * 0.5) {
+      company.profitFromAutoSell += buyPrice * 0.5
+    }
+
+    await company.save();
 
     if (qtyToSell === quantityHeld) {
-      // Sell the entire holding as before
       portfolio.soldPrice = price;
       portfolio.status = "Sold";
       portfolio.reason = "";
       portfolio.timestamp = String(new Date());
       portfolio.profit = profit;
       portfolio.profitPercentage = profitPercentage;
-      soldMessage = `${portfolio.teamName || team.batsman_id}'s ${qtyToSell} Stock(s) Sold @ ₹${price}`;
+      soldMessage = `${portfolio.teamName || team.team_id}'s ${qtyToSell} Stock(s) Sold @ ₹${price}`;
     } else {
-      // Partial sell: split the portfolio
       portfolio.quantity = String(quantityHeld - qtyToSell);
       const soldPortfolio = {
         ...portfolio.toObject ? portfolio.toObject() : portfolio,
@@ -647,13 +706,15 @@ router.post("/sell-team", authMiddleware, async (req, res) => {
         profitPercentage: buyPrice !== 0 ? (((sellPrice - buyPrice) / buyPrice) * 100).toFixed(2) : "",
       };
       user.teamPortfolios.push(soldPortfolio);
-      soldMessage = `${portfolio.teamName || team.batsman_id}'s ${qtyToSell} Stock(s) Sold @ ₹${price}`;
+      soldMessage = `${portfolio.teamName || team.team_id}'s ${qtyToSell} Stock(s) Sold @ ₹${price}`;
     }
+
     await user.save();
+
     res.status(200).json({
       success: true,
       message: soldMessage,
-      amountAdded: amountToAdd,
+      amountAdded: totalSellAmount - pointOnePercent,
       newAmount: user.amount
     });
   } catch (err) {
