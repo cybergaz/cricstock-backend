@@ -92,6 +92,62 @@ router.get("/match/:match", async (req, res) => {
   }
 });
 
+// Route to initialize team stock prices for a match
+router.post("/initialize-team-stocks/:matchId", async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    
+    const scorecard = await Scorecards.findOne({ match_id: matchId });
+    if (!scorecard) {
+      return res.status(404).json({
+        success: false,
+        message: "Match not found"
+      });
+    }
+
+    // Initialize team stock prices if they don't exist or are 0
+    if (!scorecard.teamStockPrices || 
+        !scorecard.teamStockPrices.teama || 
+        !scorecard.teamStockPrices.teamb ||
+        scorecard.teamStockPrices.teama === 0 ||
+        scorecard.teamStockPrices.teamb === 0) {
+      
+      scorecard.teamStockPrices = {
+        teama: 50,
+        teamb: 50
+      };
+      
+      await scorecard.save();
+      
+      res.status(200).json({
+        success: true,
+        message: "Team stock prices initialized",
+        data: {
+          matchId,
+          teamStockPrices: scorecard.teamStockPrices
+        }
+      });
+    } else {
+      res.status(200).json({
+        success: true,
+        message: "Team stock prices already initialized",
+        data: {
+          matchId,
+          teamStockPrices: scorecard.teamStockPrices
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error("Error initializing team stocks:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error initializing team stocks",
+      error: error.message
+    });
+  }
+});
+
 // Route to update team stock prices based on match events
 router.post("/update-team-stocks/:matchId", async (req, res) => {
   try {
