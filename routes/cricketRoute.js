@@ -174,7 +174,7 @@ router.post("/update-team-stocks/:matchId", async (req, res) => {
       });
     }
 
-    let currentPrice = scorecard.teamStockPrices[teamKey] || 50;
+    let currentPrice = scorecard.teamStockPrices[teamKey] !== undefined && scorecard.teamStockPrices[teamKey] !== null ? scorecard.teamStockPrices[teamKey] : 50;
     let priceChange = 0;
     let reason = "";
 

@@ -79,8 +79,8 @@ router.get('/total-active-users', async (req, res) => {
 router.get('/company-statement', authMiddleware, async (req, res) => {
   try {
     const company_stats = await Company.findOne({ name: "cricstock11" });
-    console.log("company_stats -> ", company_stats)
     // console.log("company_stats -> ", company_stats)
+
     const result = await User.aggregate([
       {
         $facet: {
