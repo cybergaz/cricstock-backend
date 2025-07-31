@@ -206,17 +206,10 @@ router.post("/withdrawal-approval", authMiddleware, async (req, res) => {
                 <td style="padding: 14px 18px; font-weight: 600; color: #1a237e;">GST (28%)</td>
                 <td style="padding: 14px 18px;">₹${(withdrawlResponse.amount * 0.28).toFixed(2)}</td>
               </tr>
-              ${withdrawlResponse.amount > 10000
-            ? `<tr style="background: #f1f5fb;">
-                        <td style="padding: 14px 18px; font-weight: 600; color: #1a237e;">TDS (1%)</td>
-                        <td style="padding: 14px 18px;">₹${(withdrawlResponse.amount * 0.01).toFixed(2)}</td>
-                      </tr>`
-            : ""
-          }
               <tr>
                 <td style="padding: 14px 18px; font-weight: 600; color: #1a237e;">Net Withdrawal Amount</td>
                 <td style="padding: 14px 18px; font-weight: 700; color: #388e3c;">
-                  ₹${(withdrawlResponse.amount - (withdrawlResponse.amount * 0.28) - (withdrawlResponse.amount * 0.01)).toFixed(2)}
+                  ₹${(withdrawlResponse.amount - (withdrawlResponse.amount * 0.28)).toFixed(2)}
                 </td>
               </tr>
             </tbody>
