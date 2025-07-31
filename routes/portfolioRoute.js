@@ -4,7 +4,6 @@ import { User } from "../models/User.js";
 import { Company } from "../models/Company.js";
 const router = express.Router();
 
-// buy player stocks --------------------------------------------------------------------------------------------
 router.post("/buy-player", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
@@ -39,6 +38,42 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
     }
 
     const { player, price, quantity, match_id } = req.body;
+
+    // Check player investment limit (₹25,000 max per player)
+    const playerIdStr = String(player.batsman_id).trim();
+    const matchIdStr = String(match_id).trim();
+
+    // Find current holdings for this player
+    const currentHoldings = user.playerPortfolios.filter(portfolio =>
+      String(portfolio.playerId).trim() === playerIdStr &&
+      String(portfolio.matchId).trim() === matchIdStr &&
+      portfolio.status !== "Sold"
+    );
+
+    // Calculate total current investment in this player
+    let totalCurrentInvestment = 0;
+    for (const holding of currentHoldings) {
+      const quantity = Number(holding.quantity) || 0;
+      const price = Number(holding.boughtPrice) || 0;
+      totalCurrentInvestment += quantity * price;
+    }
+
+    // Calculate new investment amount
+    const newInvestment = Number(quantity) * Number(price);
+    const totalInvestmentAfterPurchase = totalCurrentInvestment + newInvestment;
+    const maxInvestment = 25000;
+
+    if (totalInvestmentAfterPurchase > maxInvestment) {
+      const remainingInvestment = Math.max(0, maxInvestment - totalCurrentInvestment);
+      const maxQuantity = Math.floor(remainingInvestment / Number(price));
+
+      return res.status(400).json({
+        success: false,
+        message: `Investment limit exceeded. You can only invest ₹${remainingInvestment.toFixed(2)} more in this player (max ${maxQuantity} stocks at current price).`,
+        remainingInvestment: remainingInvestment.toFixed(2),
+        maxQuantity
+      });
+    }
 
     let bucket = quantity * price
     let pointOnePercent = bucket * 0.001;
@@ -76,8 +111,6 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
     }
 
     // const totalCost = Number(quantity) * Number(price) + platformFee
-    const playerIdStr = String(player.batsman_id).trim();
-    const matchIdStr = String(match_id).trim();
     const qtyToAdd = Number(quantity);
     const buyPrice = Number(price);
     const portfolioIndex = user.playerPortfolios.findIndex(
@@ -134,7 +167,6 @@ router.post("/buy-player", authMiddleware, async (req, res) => {
   }
 });
 
-// sell player stocks --------------------------------------------------------------------------------------------
 router.post("/sell-player", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
@@ -447,10 +479,6 @@ router.get("/all", authMiddleware, async (req, res) => {
 
 
 
-
-
-
-/*-------------------------------- Upcoming Feature -------------------------------------------------------*/
 router.post("/buy-team", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
@@ -476,7 +504,6 @@ router.post("/buy-team", authMiddleware, async (req, res) => {
       company = new Company({
         name: "cricstock11",
         totalProfits: 0,
-        totalTdsCut: 0,
         profitFromPlatformFees: 0,
         profitFromProfitableCuts: 0,
         profitFromUserLoss: 0,
@@ -486,6 +513,42 @@ router.post("/buy-team", authMiddleware, async (req, res) => {
     }
 
     const { team, price, quantity, match_id } = req.body;
+
+    // Check team investment limit (₹25,000 max per team)
+    const teamIdStr = String(team.team_id).trim();
+    const matchIdStr = String(match_id).trim();
+
+    // Find current holdings for this team
+    const currentHoldings = user.teamPortfolios.filter(portfolio =>
+      String(portfolio.team).trim() === teamIdStr &&
+      String(portfolio.matchId).trim() === matchIdStr &&
+      portfolio.status !== "Sold"
+    );
+
+    // Calculate total current investment in this team
+    let totalCurrentInvestment = 0;
+    for (const holding of currentHoldings) {
+      const quantity = Number(holding.quantity) || 0;
+      const price = Number(holding.boughtPrice) || 0;
+      totalCurrentInvestment += quantity * price;
+    }
+
+    // Calculate new investment amount
+    const newInvestment = Number(quantity) * Number(price);
+    const totalInvestmentAfterPurchase = totalCurrentInvestment + newInvestment;
+    const maxInvestment = 25000;
+
+    if (totalInvestmentAfterPurchase > maxInvestment) {
+      const remainingInvestment = Math.max(0, maxInvestment - totalCurrentInvestment);
+      const maxQuantity = Math.floor(remainingInvestment / Number(price));
+
+      return res.status(400).json({
+        success: false,
+        message: `Investment limit exceeded. You can only invest ₹${remainingInvestment.toFixed(2)} more in this team (max ${maxQuantity} stocks at current price).`,
+        remainingInvestment: remainingInvestment.toFixed(2),
+        maxQuantity
+      });
+    }
 
     let bucket = quantity * price
     let pointOnePercent = bucket * 0.001;
@@ -521,8 +584,6 @@ router.post("/buy-team", authMiddleware, async (req, res) => {
       user.teamPortfolios = [];
     }
 
-    const teamIdStr = String(team.team_id).trim();
-    const matchIdStr = String(match_id).trim();
     const qtyToAdd = Number(quantity);
     const buyPrice = Number(price);
     const portfolioIndex = user.teamPortfolios.findIndex(
@@ -578,6 +639,7 @@ router.post("/buy-team", authMiddleware, async (req, res) => {
     });
   }
 });
+
 router.post("/sell-team", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
@@ -651,30 +713,38 @@ router.post("/sell-team", authMiddleware, async (req, res) => {
     let totalBuyAmount = qtyToSell * buyPrice;
     const userProfitOrLoss = totalSellAmount - totalBuyAmount;
 
+    let tdsCut = 0;
     let profitCut = 0;
     let profitFrom5cut = 0;
     let profitFromUserLoss = 0;
     let companyFeeType = "";
 
     if (userProfitOrLoss > 0) {
-      profitCut = userProfitOrLoss * 0.05;
+      // 30% TDS of profit
+      tdsCut = userProfitOrLoss * 0.3;
+      // 5% of remaining profit after TDS
+      profitCut = (userProfitOrLoss - tdsCut) * 0.05;
       profitFrom5cut = profitCut;
       companyFeeType = "profitFromProfitableCuts";
-      user.amount += totalSellAmount - (profitCut + pointOnePercent);
+      // update user amount in db
+      user.amount += totalSellAmount - (tdsCut + profitCut + pointOnePercent);
     } else {
       profitCut = userProfitOrLoss;
       companyFeeType = "profitFromPlatformFees";
+      // update user amount in db
       user.amount += totalSellAmount - pointOnePercent;
       profitCut = Math.abs(profitCut)
       profitFromUserLoss = profitCut;
     }
 
+    // Update company profit
     let company = await Company.findOne({ name: "cricstock11" });
     if (!company) {
-      company = new Company({ name: "cricstock11", totalProfits: 0, profitFromPlatformFees: 0, profitFromProfitableCuts: 0, profitFromUserLoss: 0, profitFromAutoSell: 0 });
+      company = new Company({ name: "cricstock11", totalProfits: 0, totalTdsCut: 0, profitFromPlatformFees: 0, profitFromProfitableCuts: 0, profitFromUserLoss: 0, profitFromAutoSell: 0 });
     }
 
-    company.totalProfits += profitCut + pointOnePercent;
+    company.totalProfits += tdsCut + profitCut + pointOnePercent;
+    company.totalTdsCut += tdsCut;
     company.profitFromProfitableCuts += profitFrom5cut;
     company.profitFromUserLoss += profitFromUserLoss;
     company.profitFromPlatformFees += pointOnePercent;

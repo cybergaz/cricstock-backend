@@ -11,85 +11,83 @@ const SECRET = process.env.CASHFREE_SECRET;
 const URL = process.env.CASHFREE_URL;
 const FRONT = process.env.FRONTEND_URL;
 
-router.post("/order/create",
-  authMiddleware,
-  async (req, res) => {
-    try {
-      if (!req.user || !req.user.userId) {
-        return res
-          .status(401)
-          .json({ message: "Unauthorized: No user data in token" });
-      }
-
-      const userId = req.user.userId;
-
-      const { amount } = req.body;
-
-      const user = await User.findOne({ _id: userId });
-
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const orderId = `ODR_${Date.now()}`
-      const txnId = `ODR_${Date.now()}`
-
-      const orderRequest = {
-        order_id: orderId,
-        order_amount: amount,
-        order_currency: "INR",
-        customer_details: {
-          customer_id: String(userId),
-          customer_name: String(user.name),
-          customer_phone: String(user.mobile) || String(user.email),
-        },
-        order_meta: {
-          return_url: `${FRONT}/wallet?ODR=${orderId}`,
-        },
-      };
-
-      const response = await fetch(`${URL}orders`, {
-        method: "POST",
-        headers: {
-          "x-api-version": "2025-01-01",
-          "x-client-id": ID,
-          "x-client-secret": SECRET,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(orderRequest),
-      });
-
-      const result = await response.json();
-
-      const newTransaction = {
-        tID: txnId,
-        oID: orderId,
-        amount: amount,
-        txnDate: new Date(),
-      };
-
-      user.transactions.push(newTransaction);
-
-      await user.save();
-
-      res.status(200).json({
-        success: true,
-        message: "Order Created Successfully",
-        orderDetails: {
-          orderId: result.order_id,
-          orderAmount: result.order_amount,
-          createdAt: result.created_at,
-          paymentSessionId: result.payment_session_id,
-        },
-      });
-    } catch (error) {
-      console.error("Error Creating Order:", error);
-      res.status(500).json({
-        success: false,
-        message: error
-      });
+router.post("/order/create", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No user data in token" });
     }
-  });
+
+    const userId = req.user.userId;
+
+    const { amount } = req.body;
+
+    const user = await User.findOne({ _id: userId });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const orderId = `ODR_${Date.now()}`
+    const txnId = `ODR_${Date.now()}`
+
+    const orderRequest = {
+      order_id: orderId,
+      order_amount: amount,
+      order_currency: "INR",
+      customer_details: {
+        customer_id: String(userId),
+        customer_name: String(user.name),
+        customer_phone: String(user.mobile) || String(user.email),
+      },
+      order_meta: {
+        return_url: `${FRONT}/wallet?ODR=${orderId}`,
+      },
+    };
+
+    const response = await fetch(`${URL}orders`, {
+      method: "POST",
+      headers: {
+        "x-api-version": "2025-01-01",
+        "x-client-id": ID,
+        "x-client-secret": SECRET,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(orderRequest),
+    });
+
+    const result = await response.json();
+
+    const newTransaction = {
+      tID: txnId,
+      oID: orderId,
+      amount: amount,
+      txnDate: new Date(),
+    };
+
+    user.transactions.push(newTransaction);
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Order Created Successfully",
+      orderDetails: {
+        orderId: result.order_id,
+        orderAmount: result.order_amount,
+        createdAt: result.created_at,
+        paymentSessionId: result.payment_session_id,
+      },
+    });
+  } catch (error) {
+    console.error("Error Creating Order:", error);
+    res.status(500).json({
+      success: false,
+      message: error
+    });
+  }
+});
 
 router.patch("/order/terminate/:order_id", async (req, res) => {
   try {
@@ -236,6 +234,7 @@ router.patch("/order/check/:order_id", authMiddleware, async (req, res) => {
     });
   }
 });
+
 router.post("/order/create",
   authMiddleware,
   async (req, res) => {

@@ -7,6 +7,142 @@ import Withdrawl from "../models/Withdrawl.js"
 const router = express.Router();
 dotenv.config();
 
+// New endpoint to check user's current holdings for a specific player
+router.get("/player-holdings/:matchId/:playerId", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No user data in token" });
+    }
+
+    const userId = req.user.userId;
+    const { matchId, playerId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Find all active holdings for this player in this match
+    const playerHoldings = user.playerPortfolios.filter(portfolio => 
+      String(portfolio.playerId).trim() === String(playerId).trim() &&
+      String(portfolio.matchId).trim() === String(matchId).trim() &&
+      portfolio.status !== "Sold"
+    );
+
+    // Calculate total investment in this player
+    let totalInvestment = 0;
+    let totalQuantity = 0;
+    let averagePrice = 0;
+
+    if (playerHoldings.length > 0) {
+      for (const holding of playerHoldings) {
+        const quantity = Number(holding.quantity) || 0;
+        const price = Number(holding.boughtPrice) || 0;
+        totalInvestment += quantity * price;
+        totalQuantity += quantity;
+      }
+      
+      if (totalQuantity > 0) {
+        averagePrice = totalInvestment / totalQuantity;
+      }
+    }
+
+    // Calculate remaining amount that can be invested (max ₹25,000)
+    const maxInvestment = 25000;
+    const remainingInvestment = Math.max(0, maxInvestment - totalInvestment);
+
+    res.status(200).json({
+      success: true,
+      message: "Player holdings fetched successfully",
+      data: {
+        totalInvestment: totalInvestment.toFixed(2),
+        totalQuantity,
+        averagePrice: averagePrice.toFixed(2),
+        remainingInvestment: remainingInvestment.toFixed(2),
+        maxInvestment,
+        canBuy: remainingInvestment > 0,
+        holdings: playerHoldings
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching player holdings:", error);
+    res.status(500).json({
+      success: false,
+      message: error?.message || error
+    });
+  }
+});
+
+// New endpoint to check user's current holdings for a specific team
+router.get("/team-holdings/:matchId/:teamId", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No user data in token" });
+    }
+
+    const userId = req.user.userId;
+    const { matchId, teamId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Find all active holdings for this team in this match
+    const teamHoldings = user.teamPortfolios.filter(portfolio => 
+      String(portfolio.team).trim() === String(teamId).trim() &&
+      String(portfolio.matchId).trim() === String(matchId).trim() &&
+      portfolio.status !== "Sold"
+    );
+
+    // Calculate total investment in this team
+    let totalInvestment = 0;
+    let totalQuantity = 0;
+    let averagePrice = 0;
+
+    if (teamHoldings.length > 0) {
+      for (const holding of teamHoldings) {
+        const quantity = Number(holding.quantity) || 0;
+        const price = Number(holding.boughtPrice) || 0;
+        totalInvestment += quantity * price;
+        totalQuantity += quantity;
+      }
+      
+      if (totalQuantity > 0) {
+        averagePrice = totalInvestment / totalQuantity;
+      }
+    }
+
+    // Calculate remaining amount that can be invested (max ₹25,000)
+    const maxInvestment = 25000;
+    const remainingInvestment = Math.max(0, maxInvestment - totalInvestment);
+
+    res.status(200).json({
+      success: true,
+      message: "Team holdings fetched successfully",
+      data: {
+        totalInvestment: totalInvestment.toFixed(2),
+        totalQuantity,
+        averagePrice: averagePrice.toFixed(2),
+        remainingInvestment: remainingInvestment.toFixed(2),
+        maxInvestment,
+        canBuy: remainingInvestment > 0,
+        holdings: teamHoldings
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching team holdings:", error);
+    res.status(500).json({
+      success: false,
+      message: error?.message || error
+    });
+  }
+});
+
 router.get("/data",
   authMiddleware,
   async (req, res) => {
