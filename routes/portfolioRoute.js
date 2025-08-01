@@ -264,7 +264,7 @@ router.post("/sell-player", authMiddleware, async (req, res) => {
     if (userProfitOrLoss > 0) {
       // 5% of profit
       tdsCut = userProfitOrLoss * 0.3;
-      profitCut = (userProfitOrLoss - tdsCut) * 0.05;
+      profitCut = userProfitOrLoss * 0.05;
       profitFrom5cut = profitCut;
       // console.log("profitCut -> ", profitCut)
       companyFeeType = "profitFromProfitableCuts";
@@ -723,7 +723,7 @@ router.post("/sell-team", authMiddleware, async (req, res) => {
       // 30% TDS of profit
       tdsCut = userProfitOrLoss * 0.3;
       // 5% of remaining profit after TDS
-      profitCut = (userProfitOrLoss - tdsCut) * 0.05;
+      profitCut = userProfitOrLoss * 0.05;
       profitFrom5cut = profitCut;
       companyFeeType = "profitFromProfitableCuts";
       // update user amount in db
