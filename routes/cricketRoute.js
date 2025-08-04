@@ -217,6 +217,63 @@ router.post("/update-team-stocks/:matchId", async (req, res) => {
   }
 });
 
+// Route to update team stock prices using calculated values
+router.post("/update-team-stocks-calculated/:matchId", async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const { teamId, calculatedPrice } = req.body;
+    
+    const scorecard = await Scorecards.findOne({ match_id: matchId });
+    if (!scorecard) {
+      return res.status(404).json({
+        success: false,
+        message: "Match not found"
+      });
+    }
+
+    // Determine which team to update
+    const isTeamA = scorecard.teama.team_id === teamId;
+    const teamKey = isTeamA ? 'teama' : 'teamb';
+    const teamName = isTeamA ? scorecard.teama.name : scorecard.teamb.name;
+    
+    if (!isTeamA && scorecard.teamb.team_id !== teamId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid team ID"
+      });
+    }
+
+    const oldPrice = scorecard.teamStockPrices[teamKey] !== undefined && scorecard.teamStockPrices[teamKey] !== null ? scorecard.teamStockPrices[teamKey] : 50;
+    const newPrice = Math.max(0, calculatedPrice); // Ensure price doesn't go below 0
+    const priceChange = newPrice - oldPrice;
+
+    // Update the scorecard with new team stock price
+    scorecard.teamStockPrices[teamKey] = newPrice;
+    await scorecard.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Team stock price updated using calculated method`,
+      data: {
+        teamId,
+        teamName,
+        oldPrice,
+        newPrice,
+        priceChange,
+        reason: `Calculated price based on accumulated player performance`
+      }
+    });
+
+  } catch (error) {
+    console.error("Error updating team stocks with calculated price:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating team stocks with calculated price",
+      error: error.message
+    });
+  }
+});
+
 // Route to handle match over auto-selling for team portfolios
 router.post("/auto-sell-team-portfolios/:matchId", async (req, res) => {
   try {

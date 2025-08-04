@@ -796,4 +796,113 @@ router.post("/sell-team", authMiddleware, async (req, res) => {
   }
 });
 
+// Route to auto-sell player portfolios when player gets out
+router.post("/auto-sell-player-portfolios/:matchId/:playerId", async (req, res) => {
+  try {
+    const { matchId, playerId } = req.params;
+    
+    // Find all users with active holdings for this player in this match
+    const users = await User.find({
+      "playerPortfolios": {
+        $elemMatch: {
+          "matchId": matchId,
+          "playerId": playerId,
+          "status": "Buy"
+        }
+      }
+    });
+
+    if (users.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No player portfolios to auto-sell"
+      });
+    }
+
+    // Get company for profit tracking
+    let company = await Company.findOne({ name: "cricstock11" });
+    if (!company) {
+      company = new Company({
+        name: "cricstock11",
+        totalProfits: 0,
+        totalTdsCut: 0,
+        profitFromPlatformFees: 0,
+        profitFromProfitableCuts: 0,
+        profitFromUserLoss: 0,
+        profitFromAutoSell: 0
+      });
+    }
+
+    let totalAutoSold = 0;
+    let totalAutoSellAmount = 0;
+
+    for (const user of users) {
+      // Find active portfolios for this player in this match
+      const activePortfolios = user.playerPortfolios.filter(portfolio =>
+        String(portfolio.matchId).trim() === String(matchId).trim() &&
+        String(portfolio.playerId).trim() === String(playerId).trim() &&
+        portfolio.status === "Buy"
+      );
+
+      for (const portfolio of activePortfolios) {
+        const quantityHeld = Number(portfolio.quantity) || 0;
+        const buyPrice = Number(portfolio.boughtPrice) || 0;
+        
+        if (quantityHeld > 0 && buyPrice > 0) {
+          // Auto-sell at 50% of buying price
+          const autoSellPrice = buyPrice * 0.5;
+          const totalSellAmount = quantityHeld * autoSellPrice;
+          const totalBuyAmount = quantityHeld * buyPrice;
+          const loss = totalBuyAmount - totalSellAmount;
+
+          // Calculate platform fee (0.1% of sell amount, min 5, max 20)
+          let platformFee = totalSellAmount * 0.001;
+          if (platformFee < 5) platformFee = 5;
+          else if (platformFee > 20) platformFee = 20;
+
+          // Update user amount (user gets sell amount minus platform fee)
+          user.amount += totalSellAmount - platformFee;
+
+          // Update portfolio
+          portfolio.soldPrice = autoSellPrice.toFixed(2);
+          portfolio.status = "Sold";
+          portfolio.reason = "Player Out - Auto Sold";
+          portfolio.timestamp = String(new Date());
+          portfolio.profit = (-loss).toFixed(2); // Negative for loss
+          portfolio.profitPercentage = buyPrice !== 0 ? ((-loss / totalBuyAmount) * 100).toFixed(2) : "";
+
+          // Update company profits
+          company.profitFromPlatformFees += platformFee;
+          company.profitFromAutoSell += buyPrice * 0.5; // Auto-sell fee
+          company.totalProfits += platformFee + (buyPrice * 0.5);
+
+          totalAutoSold++;
+          totalAutoSellAmount += totalSellAmount;
+        }
+      }
+
+      await user.save();
+    }
+
+    await company.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Auto-sold ${totalAutoSold} player portfolios`,
+      data: {
+        totalAutoSold,
+        totalAutoSellAmount: totalAutoSellAmount.toFixed(2)
+      }
+    });
+
+  } catch (error) {
+    console.error("Error auto-selling player portfolios:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error auto-selling player portfolios",
+      error: error.message
+    });
+  }
+});
+
 export default router;

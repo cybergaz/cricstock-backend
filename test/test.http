@@ -1,11 +1,15 @@
-###
-POST https://whatsamplify.com/webhook/whatsapp-workflow/172558.195534.211071.1753514544
+### 
+
+POST https://whatsamplify.com/webhook/whatsapp-workflow/172558.195534.211071.1753514544 HTTP/1.1
 Content-Type: application/json
-key: cricstock11@12
+Key: cricstock11@12
 
 {
-  "otp": "123456",
-  "mobile": "918889981608"
+  "mobile": "918889981608",
+  "otp": "123456"
 }
 
-###
+
+### 
+
+GET https://restapi.entitysport.com/v2/matches/91824/scorecard?token=8f3a13002d3b1e9a7f75013b4e86d2be HTTP/1.1
