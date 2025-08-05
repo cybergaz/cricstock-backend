@@ -96,7 +96,7 @@ router.get("/match/:match", async (req, res) => {
 router.post("/initialize-team-stocks/:matchId", async (req, res) => {
   try {
     const { matchId } = req.params;
-    
+
     const scorecard = await Scorecards.findOne({ match_id: matchId });
     if (!scorecard) {
       return res.status(404).json({
@@ -106,19 +106,19 @@ router.post("/initialize-team-stocks/:matchId", async (req, res) => {
     }
 
     // Initialize team stock prices if they don't exist or are 0
-    if (!scorecard.teamStockPrices || 
-        !scorecard.teamStockPrices.teama || 
-        !scorecard.teamStockPrices.teamb ||
-        scorecard.teamStockPrices.teama === 0 ||
-        scorecard.teamStockPrices.teamb === 0) {
-      
+    if (!scorecard.teamStockPrices ||
+      !scorecard.teamStockPrices.teama ||
+      !scorecard.teamStockPrices.teamb ||
+      scorecard.teamStockPrices.teama === 0 ||
+      scorecard.teamStockPrices.teamb === 0) {
+
       scorecard.teamStockPrices = {
         teama: 50,
         teamb: 50
       };
-      
+
       await scorecard.save();
-      
+
       res.status(200).json({
         success: true,
         message: "Team stock prices initialized",
@@ -153,7 +153,7 @@ router.post("/update-team-stocks/:matchId", async (req, res) => {
   try {
     const { matchId } = req.params;
     const { teamId, eventType, runs = 0 } = req.body;
-    
+
     const scorecard = await Scorecards.findOne({ match_id: matchId });
     if (!scorecard) {
       return res.status(404).json({
@@ -166,7 +166,7 @@ router.post("/update-team-stocks/:matchId", async (req, res) => {
     const isTeamA = scorecard.teama.team_id === teamId;
     const teamKey = isTeamA ? 'teama' : 'teamb';
     const teamName = isTeamA ? scorecard.teama.name : scorecard.teamb.name;
-    
+
     if (!isTeamA && scorecard.teamb.team_id !== teamId) {
       return res.status(400).json({
         success: false,
@@ -222,7 +222,7 @@ router.post("/update-team-stocks-calculated/:matchId", async (req, res) => {
   try {
     const { matchId } = req.params;
     const { teamId, calculatedPrice } = req.body;
-    
+
     const scorecard = await Scorecards.findOne({ match_id: matchId });
     if (!scorecard) {
       return res.status(404).json({
@@ -235,7 +235,7 @@ router.post("/update-team-stocks-calculated/:matchId", async (req, res) => {
     const isTeamA = scorecard.teama.team_id === teamId;
     const teamKey = isTeamA ? 'teama' : 'teamb';
     const teamName = isTeamA ? scorecard.teama.name : scorecard.teamb.name;
-    
+
     if (!isTeamA && scorecard.teamb.team_id !== teamId) {
       return res.status(400).json({
         success: false,
@@ -279,10 +279,10 @@ router.post("/auto-sell-team-portfolios/:matchId", async (req, res) => {
   try {
     const { matchId } = req.params;
     const { status } = req.body;
-    
+
     // Check if match is over
-    const matchOverKeywords = ["won", "loss", "draw", "tie", "abandon", "no result", "match over", "match ended", "match finished"];
-    const isMatchOver = matchOverKeywords.some(keyword => 
+    const matchOverKeywords = ["won", "loss", "draw", "tie", "abandon", "no result", "match over", "match ended", "match finished", "completed", "cancelled"];
+    const isMatchOver = matchOverKeywords.some(keyword =>
       status.toLowerCase().includes(keyword.toLowerCase())
     );
 
@@ -338,11 +338,11 @@ router.post("/auto-sell-team-portfolios/:matchId", async (req, res) => {
       for (const portfolio of teamPortfolios) {
         const isTeamA = portfolio.team === scorecard.teama.team_id;
         const currentPrice = isTeamA ? scorecard.teamStockPrices.teama : scorecard.teamStockPrices.teamb;
-        
+
         const quantity = Number(portfolio.quantity) || 0;
         const boughtPrice = Number(portfolio.boughtPrice) || 0;
         const sellPrice = currentPrice;
-        
+
         const profit = (sellPrice - boughtPrice) * quantity;
         const profitPercentage = boughtPrice !== 0 ? ((sellPrice - boughtPrice) / boughtPrice) * 100 : 0;
 
