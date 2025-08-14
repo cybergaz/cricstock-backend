@@ -46,6 +46,8 @@ import adminRoute from "./routes/adminRoutes.js"
 import cricketRoute from "./routes/cricketRoute.js";
 import emailRoute from "./routes/emailRoute.js";
 import userRoute from "./routes/userRoute.js";
+import { fetchLiveCompetitions } from "./services/competitions.js";
+import Competitions from "./models/Competitions.js";
 
 app.use("/auth", authRoutes);
 app.use("/upload", uploadRoutes);
@@ -62,17 +64,19 @@ app.get("/", (req, res) => {
   res.send("Cricket Betting App API is running...");
 });
 
-cron.schedule('0 0 * * 0', () => {
-  competitions()
+cron.schedule('0 0 * * 0', async () => {
+  await Competitions.deleteMany({});
+  fetchLiveCompetitions("fixture")
+  fetchLiveCompetitions("live")
 });
 
 cron.schedule('*/5 * * * * *', async () => {
   todays()
 });
 
-cron.schedule('*/2 * * * * *', async () => {
-  scorecards()
-});
+// cron.schedule('*/2 * * * * *', async () => {
+// scorecards()
+// });
 
 // function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {
 //   (async () => {
@@ -113,5 +117,5 @@ cron.schedule('*/2 * * * * *', async () => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`[SR] : Connected : ${PORT}`);
+  console.log(`[SR] : Live : ${PORT}`);
 });

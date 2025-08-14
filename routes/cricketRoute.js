@@ -4,13 +4,14 @@ import Todays from "../models/Todays.js";
 import Scorecards from "../models/Scorecards.js";
 import { User } from "../models/User.js";
 import { Company } from "../models/Company.js";
+import { getMatch } from "../services/cricket.js";
 
 const router = express.Router();
 
 router.get("/competitions", async (req, res) => {
   try {
     const { limit } = req.query;
-    const competitions = await Competitions.find({}).limit(limit)
+    const competitions = await Competitions.find({})
     if (!competitions || competitions.length === 0) {
       return res.status(404).json({ message: "No Competitions Found" });
     }
