@@ -6,7 +6,22 @@ import helmet from "helmet";
 import http from "http";
 import cookieParser from 'cookie-parser';
 import cron from "node-cron";
-import { competitions, scorecards, todays } from "./services/cricket.js";
+
+import authRoutes from "./routes/authRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
+import paymentRoute from "./routes/paymentRoute.js"
+import portfolioRoute from "./routes/portfolioRoute.js"
+import adminRoute from "./routes/adminRoutes.js"
+import cricketRoute from "./routes/cricketRoute.js";
+import emailRoute from "./routes/emailRoute.js";
+import userRoute from "./routes/userRoute.js";
+import Competitions from "./models/Competitions.js";
+import Todays from "./models/Todays.js";
+import { fetchLiveCompetitions } from "./services/competitions.js";
+import { fetchTodayMatches } from "./services/match-list.js";
+import { connectToThirdPartySocket, setupSocketServer } from "./services/websocket-client.js";
+import { setupPortfolioSockets } from "./services/portfolio-socket.js";
+
 
 dotenv.config();
 
@@ -35,19 +50,24 @@ const MONGO_URI =
 
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log("[DB] : Connected"))
-  .catch((err) => console.error("MongoDB Connection Error:", err));
+  .then(() => {
+    console.log("[DB] : Connected");
 
-import authRoutes from "./routes/authRoutes.js";
-import uploadRoutes from "./routes/uploadRoutes.js";
-import paymentRoute from "./routes/paymentRoute.js"
-import portfolioRoute from "./routes/portfolioRoute.js"
-import adminRoute from "./routes/adminRoutes.js"
-import cricketRoute from "./routes/cricketRoute.js";
-import emailRoute from "./routes/emailRoute.js";
-import userRoute from "./routes/userRoute.js";
-import { fetchLiveCompetitions } from "./services/competitions.js";
-import Competitions from "./models/Competitions.js";
+    // Initialize WebSocket connections after DB connection is established
+    // Connect to third-party WebSocket
+    const thirdPartySocket = connectToThirdPartySocket();
+
+    // Setup Socket.io server for client connections
+    // Using a different port for WebSocket server
+    const SOCKET_PORT = process.env.SOCKET_PORT || 3001;
+    const io = setupSocketServer(SOCKET_PORT);
+    console.log(`[WS] : Socket.io server started on port ${SOCKET_PORT}`);
+    
+    // Setup portfolio socket handlers
+    setupPortfolioSockets(io);
+    console.log(`[WS] : Portfolio socket handlers initialized`);
+  })
+  .catch((err) => console.error("MongoDB Connection Error:", err));
 
 app.use("/auth", authRoutes);
 app.use("/upload", uploadRoutes);
@@ -71,7 +91,9 @@ cron.schedule('0 0 * * 0', async () => {
 });
 
 cron.schedule('*/5 * * * * *', async () => {
-  todays()
+  await Todays.deleteMany({});
+  console.log("deleted todays matches");
+  fetchTodayMatches()
 });
 
 // cron.schedule('*/2 * * * * *', async () => {
@@ -115,7 +137,7 @@ cron.schedule('*/5 * * * * *', async () => {
 // }
 // scheduleTodaysCheck()
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.SERVER_PORT || 5000;
 server.listen(PORT, () => {
   console.log(`[SR] : Live : ${PORT}`);
 });

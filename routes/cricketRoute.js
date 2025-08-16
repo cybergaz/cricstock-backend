@@ -30,7 +30,7 @@ router.get("/competitions", async (req, res) => {
 
 router.get("/today", async (req, res) => {
   try {
-    const todays = await Todays.find({}).sort({ date_start_ist: 1 });
+    const todays = await Todays.find({}).lean().sort({ date_start_ist: 1 });
     if (!todays || todays.length === 0) {
       return res.status(404).json({ message: "No Matches Today" });
     }
@@ -39,6 +39,7 @@ router.get("/today", async (req, res) => {
       data: todays
     });
   } catch (error) {
+    console.log("error -> ", error)
     res.status(500).json({
       message: "Error fetching today's matches",
       error: error.message
