@@ -82,7 +82,6 @@ cron.schedule('0 0 * * *', async () => {
 });
 
 cron.schedule('*/5 * * * * *', async () => {
-  await Todays.deleteMany({});
   // console.log("deleted todays matches");
   fetchTodayMatches()
 });
