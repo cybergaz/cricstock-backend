@@ -59,7 +59,7 @@ const sanitizeData = (data) => {
             batsman_balls: String(comment.batsman_balls || '')
           };
         });
-        
+
         // Create a new object instead of modifying the existing one
         sanitized.live = {
           ...sanitized.live,
@@ -80,7 +80,7 @@ const sanitizeData = (data) => {
             strike_rate: String(batsman.strike_rate || '')
           };
         });
-        
+
         // Create a new object instead of modifying the existing one
         sanitized.live = {
           ...sanitized.live,
@@ -101,7 +101,7 @@ const sanitizeData = (data) => {
             econ: String(bowler.econ || '')
           };
         });
-        
+
         // Create a new object instead of modifying the existing one
         sanitized.live = {
           ...sanitized.live,
@@ -120,8 +120,7 @@ const sanitizeData = (data) => {
 
 // WebSocket connection to third-party API
 const connectToThirdPartySocket = () => {
-  const token = process.env.TOKEN;
-  const wsUrl = `ws://webhook.entitysport.com:8087/connect?token=${token}`;
+  const wsUrl = process.env.ENT_WS_URL;
 
   const ws = new WebSocket(wsUrl);
 
@@ -208,9 +207,9 @@ const updateMatchData = async (data) => {
       // Convert the string live field to an object structure
       await Todays.updateOne(
         { match_id: data.match_id },
-        { 
+        {
           $unset: { live: "" },
-          $set: { 
+          $set: {
             live: {
               mid: data.match_id,
               status: 0,
