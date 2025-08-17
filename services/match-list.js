@@ -25,16 +25,16 @@ export const fetchTodayMatches = async () => {
 
     // Combine both match types into a single array
     const allMatches = [...ongoing_data.items, ...(upcoming_data.items || [])];
-    console.log("allMatches -> ", allMatches.length)
-    for (const match of allMatches) {
-      console.log("Match ID: ", match.match_id, "Format: " + match.format, "Format Str: " + match.format_str);
-    }
+    // console.log("allMatches -> ", allMatches.length)
+    // for (const match of allMatches) {
+    //   console.log("Match ID: ", match.match_id, "Format: " + match.format, "Format Str: " + match.format_str);
+    // }
 
     // Process all matches at once
     await Promise.all(allMatches.map(async (element) => {
       // Only process T20 matches
       if (String(element.format_str).toLowerCase().includes("t20")) {
-        console.log("Processing Match ID: ", element.match_id, "Format: " + element.format, "Format Str: " + element.format_str);
+        // console.log("Processing Match ID: ", element.match_id, "Format: " + element.format, "Format Str: " + element.format_str);
         startTimes.push(String(element.date_start_ist || ''));
 
         // Safely handle nested objects and properties with proper type casting
