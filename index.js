@@ -19,7 +19,7 @@ import Competitions from "./models/Competitions.js";
 import Todays from "./models/Todays.js";
 import { fetchLiveCompetitions } from "./services/competitions.js";
 import { fetchTodayMatches } from "./services/match-list.js";
-import { connectToThirdPartySocket, setupSocketServer } from "./services/websocket-client.js";
+import { connectToThirdPartySocket, setupWebSocketServer } from "./services/websocket-client.js";
 import { setupPortfolioSockets } from "./services/portfolio-socket.js";
 
 
@@ -53,19 +53,10 @@ mongoose
   .then(() => {
     console.log("[DB] : Connected");
 
-    // Initialize WebSocket connections after DB connection is established
-    // Connect to third-party WebSocket
-    const thirdPartySocket = connectToThirdPartySocket();
-
-    // Setup Socket.io server for client connections
-    // Using a different port for WebSocket server
-    const SOCKET_PORT = process.env.SOCKET_PORT || 3001;
-    const io = setupSocketServer(SOCKET_PORT);
-    console.log(`[WS] : Socket.io server started on port ${SOCKET_PORT}`);
-    
-    // Setup portfolio socket handlers
-    setupPortfolioSockets(io);
-    console.log(`[WS] : Portfolio socket handlers initialized`);
+    // Setup WebSocket handlers
+    const socketPort = process.env.SOCKET_PORT || 3001;
+    setupWebSocketServer(socketPort);
+    // setupPortfolioSockets(wss);
   })
   .catch((err) => console.error("MongoDB Connection Error:", err));
 
@@ -84,7 +75,7 @@ app.get("/", (req, res) => {
   res.send("Cricket Betting App API is running...");
 });
 
-cron.schedule('0 0 * * 0', async () => {
+cron.schedule('0 0 * * *', async () => {
   await Competitions.deleteMany({});
   fetchLiveCompetitions("fixture")
   fetchLiveCompetitions("live")
@@ -92,7 +83,7 @@ cron.schedule('0 0 * * 0', async () => {
 
 cron.schedule('*/5 * * * * *', async () => {
   await Todays.deleteMany({});
-  console.log("deleted todays matches");
+  // console.log("deleted todays matches");
   fetchTodayMatches()
 });
 
@@ -100,44 +91,9 @@ cron.schedule('*/5 * * * * *', async () => {
 // scorecards()
 // });
 
-// function scheduleTodaysCheck(fallbackMs = 10 * 60 * 1000) {
-//   (async () => {
-//     const now = new Date();
-//     const pad = (n) => n.toString().padStart(2, '0');
-//     const todayDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-//     let result;
-//     try {
-//       result = await todays();
-//     } catch (e) {
-//       console.error('[TODAYS] Error in scheduled check:', e);
-//       setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
-//       return;
-//     }
-//     if (!result || !Array.isArray(result) || result.length === 0) {
-//       setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
-//       return;
-//     }
-//     // Find the soonest valid match time in the future
-//     const nowTime = getTimeFromString(todayDateStr);
-//     const futureTimes = result
-//       .map(getTimeFromString)
-//       .filter(t => t && t > nowTime)
-//       .sort((a, b) => a - b);
-//     if (futureTimes.length === 0) {
-//       setTimeout(() => scheduleTodaysCheck(fallbackMs), fallbackMs);
-//       return;
-//     }
-//     const nextMatchTime = futureTimes[0];
-//     const msUntilNext = nextMatchTime - nowTime;
-//     const msToWait = Math.max(msUntilNext - 60 * 1000, 0);
-//     setTimeout(() => scheduleTodaysCheck(fallbackMs), msToWait);
-//     const nextDate = new Date(now.getTime() + msToWait);
-//     console.log(`[SR] Next Match At : ${nextDate.toLocaleString()}`);
-//   })();
-// }
-// scheduleTodaysCheck()
-
 const PORT = process.env.SERVER_PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`[SR] : Live : ${PORT}`);
+  console.log(`[SERVER] : Live @ ${PORT}`);
+  // Connect to third-party WebSocket after server starts
+  connectToThirdPartySocket();
 });

@@ -1,20 +1,12 @@
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 import "dotenv/config";
 import Todays from "../models/Todays.js";
-import { createServer } from 'http';
-import { Server } from 'socket.io';
-
-// Create HTTP server for Socket.io
-const httpServer = createServer();
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
 
 // Store connected clients
 const connectedClients = new Set();
+
+// WebSocket server for client connections
+let wss = null;
 
 // Utility function to sanitize data and ensure it conforms to our schema
 const sanitizeData = (data) => {
@@ -125,21 +117,21 @@ const connectToThirdPartySocket = () => {
   const ws = new WebSocket(wsUrl);
 
   ws.on('open', () => {
-    console.log('Connected to third-party WebSocket');
+    console.log('Connected to Entity WebSocket...');
   });
 
   ws.on('message', async (data) => {
     try {
       // Parse incoming data
       const parsedData = JSON.parse(data.toString());
-      console.log("-----------------------------------------------------------------")
-      console.log('Received data from third-party WebSocket:');
-      if (parsedData && parsedData.api_type) {
-        console.log("api type", parsedData.api_type, parsedData.response?.match_id);
-      }
-      if (parsedData && parsedData.response?.ball_event) {
-        console.log("ball event", parsedData.response.ball_event, parsedData.response?.match_id);
-      }
+      // console.log("-----------------------------------------------------------------")
+      // console.log('Received data from third-party WebSocket:');
+      // if (parsedData && parsedData.api_type) {
+      //   console.log("api type", parsedData.api_type, parsedData.response?.match_id);
+      // }
+      // if (parsedData && parsedData.response?.ball_event) {
+      //   console.log("ball event", parsedData.response.ball_event, parsedData.response?.match_id);
+      // }
 
       // Process the data based on the event type
       if (parsedData && parsedData.api_type == "match_push_obj" && parsedData.response?.match_id) {
@@ -152,8 +144,12 @@ const connectToThirdPartySocket = () => {
             await updateMatchData(sanitizedData);
 
             // Forward the sanitized data to all connected clients
-            io.emit('match_update', sanitizedData);
+            broadcastToClients({
+              type: 'match_update',
+              data: sanitizedData
+            });
           }
+
         } catch (updateError) {
           console.error('Error processing match update:', updateError);
           console.error('Error stack:', updateError.stack);
@@ -315,43 +311,147 @@ const updateMatchData = async (data) => {
   }
 };
 
-// Set up Socket.io server for client connections
-const setupSocketServer = (port = 3001) => {
-  // Handle client connections
-  io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
-    connectedClients.add(socket);
+// Set up WebSocket server for client connections
+const setupWebSocketServer = (port) => {
+  // Create WebSocket server directly
+  wss = new WebSocketServer({ port });
+
+  wss.on('connection', (ws, req) => {
+    console.log('Client connected:', req.socket.remoteAddress);
+    connectedClients.add(ws);
 
     // Send current match data to the newly connected client
-    sendCurrentMatchData(socket);
+    sendCurrentMatchData(ws);
 
-    socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
-      connectedClients.delete(socket);
+    ws.on('close', () => {
+      console.log('Client disconnected');
+      connectedClients.delete(ws);
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket client error:', error);
+      connectedClients.delete(ws);
+    });
+
+    // Handle incoming messages from clients
+    ws.on('message', (message) => {
+      console.log('Received message from client:', message.toString());
+      try {
+        const data = JSON.parse(message.toString());
+        handleClientMessage(ws, data);
+      } catch (error) {
+        console.error('Error parsing client message:', error);
+      }
     });
   });
 
-  // Start the HTTP server
-  httpServer.listen(port, () => {
-    console.log(`Socket.io server listening on port ${port}`);
-  });
+  console.log(`[WEBSOCKET] : Live @ ${port}`);
+  return wss;
+};
 
-  return io;
+// Handle client messages
+const handleClientMessage = (ws, data) => {
+  switch (data.type) {
+    case 'subscribePortfolio':
+      // Handle portfolio subscription
+      handlePortfolioSubscription(ws, data);
+      break;
+    case 'unsubscribePortfolio':
+      // Handle portfolio unsubscription
+      handlePortfolioUnsubscription(ws, data);
+      break;
+    default:
+      console.log('Unknown message type:', data.type);
+  }
+};
+
+// Handle portfolio subscription
+const handlePortfolioSubscription = async (ws, data) => {
+  try {
+    // Store subscription info
+    ws.subscriptionType = 'portfolio';
+    ws.userId = data.userId;
+
+    // Send initial portfolio data
+    await sendPortfolioData(ws);
+  } catch (error) {
+    console.error('Error handling portfolio subscription:', error);
+  }
+};
+
+// Handle portfolio unsubscription
+const handlePortfolioUnsubscription = (ws, data) => {
+  ws.subscriptionType = null;
+  ws.userId = null;
+  console.log('Client unsubscribed from portfolio updates');
+};
+
+// Broadcast to all connected clients
+const broadcastToClients = (data) => {
+  connectedClients.forEach((client) => {
+    console.log("broadcasted to connected client")
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(data));
+    }
+  });
+};
+
+// Broadcast to specific user's portfolio clients
+const broadcastToPortfolioClients = (userId, data) => {
+  connectedClients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN &&
+      client.subscriptionType === 'portfolio' &&
+      client.userId === userId) {
+      client.send(JSON.stringify(data));
+    }
+  });
 };
 
 // Send current match data to a client
-const sendCurrentMatchData = async (socket) => {
+const sendCurrentMatchData = async (ws) => {
   try {
-    // Get all today's matches from the database
     const matches = await Todays.find({}).lean();
 
-    // Send the data to the client
     if (matches && matches.length > 0) {
-      socket.emit('initial_matches', matches);
+      ws.send(JSON.stringify({
+        type: 'initial_matches',
+        data: matches
+      }));
     }
   } catch (error) {
     console.error(`Error sending current match data: ${error.message}`);
   }
 };
 
-export { connectToThirdPartySocket, setupSocketServer }; 
+// Send portfolio data to a client
+const sendPortfolioData = async (ws) => {
+  try {
+    if (!ws.userId) {
+      console.warn('No user ID found for portfolio data request');
+      return;
+    }
+
+    // Get user's portfolio data (you'll need to implement this)
+    const portfolioData = await getUserPortfolioData(ws.userId);
+
+    ws.send(JSON.stringify({
+      type: 'portfolio_update',
+      data: portfolioData
+    }));
+  } catch (error) {
+    console.error(`Error sending portfolio data: ${error.message}`);
+  }
+};
+
+// Helper function to get user portfolio data
+const getUserPortfolioData = async (userId) => {
+  // Implement this based on your existing portfolio logic
+  // This should return the same structure as your current portfolio data
+  return {};
+};
+
+export {
+  connectToThirdPartySocket,
+  setupWebSocketServer,
+  broadcastToPortfolioClients
+}; 

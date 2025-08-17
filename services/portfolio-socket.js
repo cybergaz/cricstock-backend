@@ -1,72 +1,58 @@
 import { User } from "../models/User.js";
 import Scorecards from "../models/Scorecards.js";
-import socketAuthMiddleware from "./socket-auth.js";
+import WebSocket, { WebSocketServer } from 'ws';
 
 // Store connected clients and their subscriptions
 const portfolioSubscriptions = new Map();
-let portfolioNamespace = null;
 
 /**
- * Setup portfolio WebSocket handlers on the provided Socket.io server
- * @param {Server} io - The Socket.io server instance
+ * Setup portfolio WebSocket handlers on the provided WebSocket server
+ * @param {WebSocket.Server} wss - The WebSocket server instance
  */
-const setupPortfolioSockets = (io) => {
-  // Create a separate namespace for portfolio sockets with authentication
-  portfolioNamespace = io.of('/portfolio');
-  
-  // Apply authentication middleware to portfolio namespace
-  portfolioNamespace.use(socketAuthMiddleware);
-  
-  // Handle client connections to portfolio namespace
-  portfolioNamespace.on('connection', (socket) => {
-    console.log('Client connected to portfolio socket:', socket.id);
-    
-    // Handle authentication errors
-    socket.on('error', (error) => {
-      console.error(`Socket error for ${socket.id}:`, error.message);
-    });
-    
+const setupPortfolioSockets = (wss) => {
+  // Handle client connections
+  wss.on('connection', (ws, req) => {
+    console.log('Client connected to portfolio socket:', req.socket.remoteAddress);
+
     // Handle portfolio subscription
-    socket.on('subscribePortfolio', async () => {
+    ws.on('message', async (message) => {
       try {
-        console.log(`Client ${socket.id} subscribed to portfolio updates for user ${socket.userId}`);
-        
-        // Store the subscription with user ID
-        portfolioSubscriptions.set(socket.id, {
-          type: 'portfolio',
-          userId: socket.userId,
-          lastUpdate: Date.now()
-        });
-        
-        // Send initial portfolio data
-        await sendPortfolioData(socket);
+        const data = JSON.parse(message.toString());
+
+        switch (data.type) {
+          case 'subscribePortfolio':
+            await handlePortfolioSubscription(ws, data);
+            break;
+          case 'unsubscribePortfolio':
+            handlePortfolioUnsubscription(ws, data);
+            break;
+          case 'authenticate':
+            await handleAuthentication(ws, data);
+            break;
+          default:
+            console.log('Unknown message type:', data.type);
+        }
       } catch (error) {
-        console.error(`Error handling portfolio subscription: ${error.message}`);
+        console.error('Error handling portfolio message:', error);
       }
     });
-    
-    // Handle portfolio unsubscription
-    socket.on('unsubscribePortfolio', () => {
-      console.log(`Client ${socket.id} unsubscribed from portfolio updates`);
-      portfolioSubscriptions.delete(socket.id);
-    });
-    
+
     // Handle disconnection
-    socket.on('disconnect', () => {
-      console.log('Portfolio client disconnected:', socket.id);
-      portfolioSubscriptions.delete(socket.id);
+    ws.on('close', () => {
+      console.log('Portfolio client disconnected');
+      portfolioSubscriptions.delete(ws.id);
     });
   });
-  
+
   // Set up periodic updates for all subscribed clients
   setInterval(async () => {
     try {
       // Get all clients subscribed to portfolio updates
       for (const [socketId, subscription] of portfolioSubscriptions.entries()) {
         if (subscription.type === 'portfolio') {
-          const socket = portfolioNamespace.sockets.sockets.get(socketId);
-          if (socket) {
-            await sendPortfolioData(socket);
+          const ws = subscription.ws;
+          if (ws.readyState === WebSocket.OPEN) {
+            await sendPortfolioData(ws);
           } else {
             // Clean up if socket no longer exists
             portfolioSubscriptions.delete(socketId);
@@ -80,40 +66,126 @@ const setupPortfolioSockets = (io) => {
 };
 
 /**
- * Send portfolio data to a specific client
- * @param {Socket} socket - The client socket
+ * Handle authentication for portfolio clients
+ * @param {WebSocket} ws - The client WebSocket
+ * @param {Object} data - Authentication data
  */
-const sendPortfolioData = async (socket) => {
+const handleAuthentication = async (ws, data) => {
   try {
-    // Get user ID from socket (authentication middleware sets this)
-    const userId = socket.userId;
-    
-    if (!userId) {
-      console.warn(`No user ID found for socket ${socket.id}`);
+    const { token } = data;
+
+    if (!token) {
+      ws.send(JSON.stringify({
+        type: 'auth_error',
+        message: 'Authentication token not provided'
+      }));
       return;
     }
-    
+
+    // Verify JWT token (you'll need to implement this)
+    const user = await verifyToken(token);
+    if (!user) {
+      ws.send(JSON.stringify({
+        type: 'auth_error',
+        message: 'Authentication failed'
+      }));
+      return;
+    }
+
+    // Store user info on the WebSocket
+    ws.userId = user._id;
+    ws.user = user;
+
+    ws.send(JSON.stringify({
+      type: 'auth_success',
+      userId: user._id
+    }));
+
+  } catch (error) {
+    console.error('Authentication error:', error);
+    ws.send(JSON.stringify({
+      type: 'auth_error',
+      message: 'Authentication failed'
+    }));
+  }
+};
+
+/**
+ * Handle portfolio subscription
+ * @param {WebSocket} ws - The client WebSocket
+ * @param {Object} data - Subscription data
+ */
+const handlePortfolioSubscription = async (ws, data) => {
+  try {
+    if (!ws.userId) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Authentication required'
+      }));
+      return;
+    }
+
+    console.log(`Client ${ws.id} subscribed to portfolio updates for user ${ws.userId}`);
+
+    // Store the subscription
+    portfolioSubscriptions.set(ws.id, {
+      type: 'portfolio',
+      userId: ws.userId,
+      ws: ws,
+      lastUpdate: Date.now()
+    });
+
+    // Send initial portfolio data
+    await sendPortfolioData(ws);
+  } catch (error) {
+    console.error(`Error handling portfolio subscription: ${error.message}`);
+  }
+};
+
+/**
+ * Handle portfolio unsubscription
+ * @param {WebSocket} ws - The client WebSocket
+ * @param {Object} data - Unsubscription data
+ */
+const handlePortfolioUnsubscription = (ws, data) => {
+  console.log(`Client ${ws.id} unsubscribed from portfolio updates`);
+  portfolioSubscriptions.delete(ws.id);
+};
+
+/**
+ * Send portfolio data to a specific client
+ * @param {WebSocket} ws - The client WebSocket
+ */
+const sendPortfolioData = async (ws) => {
+  try {
+    const userId = ws.userId;
+
+    if (!userId) {
+      console.warn(`No user ID found for WebSocket`);
+      return;
+    }
+
     // Get user's portfolio data
     const user = await User.findById(userId);
     if (!user) {
       console.warn(`User not found for ID: ${userId}`);
       return;
     }
-    
+
     // Extract active portfolios
     const playerPortfolios = user.playerPortfolios.filter(p => p.status === "Buy");
     const teamPortfolios = user.teamPortfolios.filter(p => p.status === "Buy");
-    
+
     // Get portfolio history
     const playerHistory = user.playerPortfolios.filter(p => p.status === "Sold");
     const teamHistory = user.teamPortfolios.filter(p => p.status === "Sold");
-    
+
     // Collect unique match IDs to fetch match data
     const uniqueMatchIds = Array.from(new Set([
       ...playerPortfolios.map(p => p.matchId),
       ...teamPortfolios.map(p => p.matchId)
     ]));
-    
+
     // Fetch match data for all relevant matches
     const matchData = {};
     if (uniqueMatchIds.length > 0) {
@@ -122,24 +194,27 @@ const sendPortfolioData = async (socket) => {
         matchData[scorecard.match_id] = scorecard;
       });
     }
-    
+
     // Send the portfolio data to the client
-    socket.emit('portfolio_update', {
-      playerPortfolios,
-      teamPortfolios,
-      playerHistory,
-      teamHistory,
-      availableBalance: user.amount,
-      totalProfit: user.totalProfit || 0,
-      matchData
-    });
-    
+    ws.send(JSON.stringify({
+      type: 'portfolio_update',
+      data: {
+        playerPortfolios,
+        teamPortfolios,
+        playerHistory,
+        teamHistory,
+        availableBalance: user.amount,
+        totalProfit: user.totalProfit || 0,
+        matchData
+      }
+    }));
+
     // Update last update timestamp
-    const subscription = portfolioSubscriptions.get(socket.id);
+    const subscription = portfolioSubscriptions.get(ws.id);
     if (subscription) {
       subscription.lastUpdate = Date.now();
     }
-    
+
   } catch (error) {
     console.error(`Error sending portfolio data: ${error.message}`);
   }
@@ -152,23 +227,38 @@ const sendPortfolioData = async (socket) => {
  */
 const broadcastPortfolioUpdate = async (userId, data = null) => {
   try {
-    // Find all sockets subscribed to this user's portfolio
+    // Find all WebSockets subscribed to this user's portfolio
     for (const [socketId, subscription] of portfolioSubscriptions.entries()) {
       if (subscription.type === 'portfolio' && subscription.userId === userId) {
-        const socket = portfolioNamespace.sockets.sockets.get(socketId);
-        if (socket) {
+        const ws = subscription.ws;
+        if (ws.readyState === WebSocket.OPEN) {
           if (data) {
             // Send specific data if provided
-            socket.emit('portfolio_update', data);
+            ws.send(JSON.stringify({
+              type: 'portfolio_update',
+              data: data
+            }));
           } else {
             // Otherwise send full portfolio data
-            await sendPortfolioData(socket);
+            await sendPortfolioData(ws);
           }
         }
       }
     }
   } catch (error) {
     console.error(`Error broadcasting portfolio update: ${error.message}`);
+  }
+};
+
+// Helper function to verify JWT token
+const verifyToken = async (token) => {
+  try {
+    // Implement JWT verification here
+    // You can use the same logic from your socket-auth.js
+    return null; // Placeholder
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return null;
   }
 };
 
