@@ -134,7 +134,7 @@ const connectToThirdPartySocket = () => {
       // }
 
       // Process the data based on the event type
-      if (parsedData && parsedData.api_type == "match_push_obj" && parsedData.response?.match_id) {
+      if (parsedData && parsedData.api_type == "match_push_obj" && parsedData.response?.match_id && parsedData.response?.match_info.format_str.toLowerCase().includes("t20")) {
         try {
           // Sanitize the data before processing
           const sanitizedData = sanitizeData(parsedData.response);
