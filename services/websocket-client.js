@@ -134,19 +134,26 @@ const connectToThirdPartySocket = () => {
       // }
 
       // Process the data based on the event type
-      if (parsedData && parsedData.api_type == "match_push_obj" && parsedData.response?.match_id && parsedData.response?.match_info.format_str.toLowerCase().includes("t20")) {
+      if (parsedData) {
         try {
           // Sanitize the data before processing
-          const sanitizedData = sanitizeData(parsedData.response);
+          if (parsedData.api_type == "match_push_obj" && parsedData.response?.match_id && parsedData.response?.match_info.format_str.toLowerCase().includes("t20")) {
+            const sanitizedData = sanitizeData(parsedData.response);
 
-          if (sanitizedData) {
-            // Update the database with the sanitized data
-            await updateMatchData(sanitizedData);
+            if (sanitizedData) {
+              // Update the database with the sanitized data
+              await updateMatchData(sanitizedData);
 
-            // Forward the sanitized data to all connected clients
+              // Forward the sanitized data to all connected clients
+              broadcastToClients({
+                type: 'match_update',
+                data: sanitizedData
+              });
+            }
+          } else {
             broadcastToClients({
               type: 'match_update',
-              data: sanitizedData
+              data: parsedData.response
             });
           }
 
