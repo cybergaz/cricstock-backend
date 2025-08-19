@@ -170,15 +170,4 @@ const broadcastToClients = (data) => {
   });
 };
 
-// Broadcast to specific user's portfolio clients
-const broadcastToPortfolioClients = (userId, data) => {
-  subscribedClients.forEach((client, id) => {
-    if (client.ws.readyState === WebSocket.OPEN &&
-      client.ws.subscriptionType === 'portfolio_update' &&
-      client.userId === userId) {
-      client.ws.send(JSON.stringify(data));
-    }
-  });
-};
-
-export { setupWebSocketServer, broadcastToClients, broadcastToPortfolioClients, handleClientMessage, handleMatchSubscription, handleMatchUnsubscription, handlePortfolioSubscription, handlePortfolioUnsubscription, subscribedClients, wss };
+export { setupWebSocketServer, broadcastToClients, handleClientMessage, handleMatchSubscription, handleMatchUnsubscription, handlePortfolioSubscription, handlePortfolioUnsubscription, subscribedClients, wss };

@@ -39,33 +39,53 @@ const sendCurrentPortfolioData = async (ws) => {
   }
 };
 
-const getUserPortfolioData = async (userId) => {
-  // This should return the same structure as your current portfolio data
-  try {
-
-    // Get user's portfolio data
-    const user = await User.findById(userId);
-    if (!user) {
-      console.warn(`User not found for ID: ${userId}`);
-      return;
-    }
-
-    // Extract active portfolios
-    const playerPortfolios = user.playerPortfolios.filter(p => p.status === "Buy");
-    const teamPortfolios = user.teamPortfolios.filter(p => p.status === "Buy");
-
-    // Get portfolio history
-    const playerHistory = user.playerPortfolios.filter(p => p.status === "Sold");
-    const teamHistory = user.teamPortfolios.filter(p => p.status === "Sold");
-
-    // calculate sum of total profit and loss for player and team history
-    const totalProfit = [...playerHistory, ...teamHistory].reduce((sum, p) => sum + Number(p.profit), 0);
-    console.log("totalProfit -> ", totalProfit)
-
-  }
-  catch (error) {
-    console.error(`Error fetching portfolio data for user ${userId}: ${error.message}`);
-  }
-};
+// const getUserPortfolioData = async (userId) => {
+//   // This should return the same structure as your current portfolio data
+//   try {
+//
+//     // Get user's portfolio data
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       console.warn(`User not found for ID: ${userId}`);
+//       return;
+//     }
+//
+//     // Extract active portfolios
+//     const playerPortfolios = user.playerPortfolios.filter(p => p.status === "Buy");
+//     const teamPortfolios = user.teamPortfolios.filter(p => p.status === "Buy");
+//
+//     // Get portfolio history
+//     const playerHistory = user.playerPortfolios.filter(p => p.status === "Sold");
+//     const teamHistory = user.teamPortfolios.filter(p => p.status === "Sold");
+//
+//     // calculate sum of total profit and loss for player and team history
+//     const totalProfit = [...playerHistory, ...teamHistory].reduce((sum, p) => sum + Number(p.profit), 0);
+//
+//     return{
+//       success: true,
+//       message: "Portfolios Fetched",
+//       playerPortfolios: activePlayers,
+//       playerHistory: paginatedPlayerHistory,
+//       playerHistoryPagination: {
+//         currentPage: pageNum,
+//         totalPages: Math.ceil(totalHistoryCount / limitNum),
+//         totalItems: totalHistoryCount,
+//         itemsPerPage: limitNum,
+//         hasNextPage: skip + limitNum < totalHistoryCount,
+//         hasPrevPage: pageNum > 1
+//       },
+//       teamPortfolios: activeTeams,
+//       teamHistory,
+//       totalPortfolioProfit,
+//       value: (Number(user.amount) + Number(user.referralAmount)),
+//       profit: totalProfits
+//     }
+//
+//
+//   }
+//   catch (error) {
+//     console.error(`Error fetching portfolio data for user ${userId}: ${error.message}`);
+//   }
+// };
 
 export { sendCurrentMatchData, sendCurrentPortfolioData };
