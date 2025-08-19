@@ -19,9 +19,8 @@ import Competitions from "./models/Competitions.js";
 import Todays from "./models/Todays.js";
 import { fetchLiveCompetitions } from "./services/competitions.js";
 import { fetchTodayMatches } from "./services/match-list.js";
-import { connectToThirdPartySocket, setupWebSocketServer } from "./services/websocket-client.js";
-import { setupPortfolioSockets } from "./services/portfolio-socket.js";
-
+import { connectToThirdPartySocket } from "./services/websocket-client.js";
+import { setupWebSocketServer } from "./services/websocket-server.js";
 
 dotenv.config();
 
@@ -65,9 +64,8 @@ app.use("/upload", uploadRoutes);
 app.use("/portfolio", portfolioRoute);
 app.use("/payment", paymentRoute);
 app.use("/user", userRoute);
-app.use("/admin", adminRoute)
-app.use("/admin", adminRoute)
-app.use("/email", emailRoute)
+app.use("/admin", adminRoute);
+app.use("/email", emailRoute);
 app.use("/cricket", cricketRoute);
 
 // Root Route

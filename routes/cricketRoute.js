@@ -4,7 +4,8 @@ import Todays from "../models/Todays.js";
 import Scorecards from "../models/Scorecards.js";
 import { User } from "../models/User.js";
 import { Company } from "../models/Company.js";
-import { getMatch } from "../services/cricket.js";
+import { getMatch, getMatchFromDB } from "../services/cricket.js";
+import { broadcastToClients } from "../services/websocket-server.js";
 
 const router = express.Router();
 
@@ -72,20 +73,46 @@ router.get("/scorecard/:match", async (req, res) => {
   }
 });
 
-router.get("/match/:match", async (req, res) => {
+router.get("/match_from_api/:match", async (req, res) => {
   try {
     const { match } = req.params;
     const matchInfo = await getMatch(match);
     if (!matchInfo) {
       return res.status(404).json({
+        success: false,
         message: `No match info found for match_id: ${match}`,
         data: null
       });
     }
     res.status(200).json({
+      success: true,
       message: `Match info found for match_id: ${match}`,
       data: matchInfo
     });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching match info",
+      error: error.message
+    });
+  }
+});
+
+router.get("/match_from_db/:match_id", async (req, res) => {
+  try {
+    const { match_id } = req.params;
+    const matchInfo = await getMatchFromDB(match_id);
+    if (!matchInfo) {
+      return res.status(404).json({
+        message: `No match info found for match_id: ${match_id}`,
+        data: null
+      });
+    }
+    res.status(200).json({
+      message: `Match info found for match_id: ${match_id}`,
+      data: matchInfo
+    });
+
   } catch (error) {
     res.status(500).json({
       message: "Error fetching match info",
@@ -401,6 +428,65 @@ router.post("/auto-sell-team-portfolios/:matchId", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error auto-selling team portfolios",
+      error: error.message
+    });
+  }
+});
+
+// Route to manually update team stock prices (for testing)
+router.post("/update-team-stocks/:matchId", async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const { teamAPrice, teamBPrice } = req.body;
+
+    if (!matchId || !teamAPrice || !teamBPrice) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required parameters: matchId, teamAPrice, teamBPrice"
+      });
+    }
+
+    // Find the scorecard for this match
+    const scorecard = await Scorecards.findOne({ match_id: matchId });
+    if (!scorecard) {
+      return res.status(404).json({
+        success: false,
+        message: "No scorecard found for this match"
+      });
+    }
+
+    // Update team stock prices
+    scorecard.teamStockPrices = {
+      teama: parseFloat(teamAPrice),
+      teamb: parseFloat(teamBPrice)
+    };
+
+    await scorecard.save();
+
+    // Get the updated match data to broadcast to clients
+    const updatedMatch = await Todays.findOne({ match_id: matchId });
+    if (updatedMatch) {
+      // Create a copy of the match data with team stock prices
+      const matchData = updatedMatch.toObject();
+      matchData.teamStockPrices = scorecard.teamStockPrices;
+
+      // Broadcast the update to all connected WebSocket clients
+      broadcastToClients(matchData);
+    }
+
+    return res.json({
+      success: true,
+      message: "Team stock prices updated successfully",
+      data: {
+        matchId,
+        teamStockPrices: scorecard.teamStockPrices
+      }
+    });
+  } catch (error) {
+    console.error("Error updating team stock prices:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error updating team stock prices",
       error: error.message
     });
   }

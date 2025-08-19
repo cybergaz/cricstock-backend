@@ -1,6 +1,7 @@
 import axios from "axios";
 import "dotenv/config";
 import Todays from "../models/Todays.js";
+import Scorecards from "../models/Scorecards.js";
 import { getTodayToNext1DaysRange } from "./actions.js";
 
 const token = process.env.TOKEN
@@ -12,12 +13,14 @@ export const fetchTodayMatches = async () => {
 
     // Clear existing matches for today
     await Todays.deleteMany({});
+    // await Scorecards.deleteMany({});
 
     const startTimes = [];
 
     // Fetch both ongoing (status=3) and upcoming (status=1) matches in parallel
     const ongoing_response = await axios.get(`${baseURL}matches/?status=3&date=${getTodayToNext1DaysRange()}&timezone=+5:30&token=${token}`);
     const upcoming_response = await axios.get(`${baseURL}matches/?status=1&date=${getTodayToNext1DaysRange()}&timezone=+5:30&token=${token}`);
+    // console.log("Ongoing Matches Count: ", ongoing_response.data.response);
 
     // Get data from responses
     const ongoing_data = ongoing_response.data.response;
@@ -36,6 +39,7 @@ export const fetchTodayMatches = async () => {
       if (String(element.format_str).toLowerCase().includes("t20")) {
         // console.log("Processing Match ID: ", element.match_id, "Format: " + element.format, "Format Str: " + element.format_str);
         startTimes.push(String(element.date_start_ist || ''));
+        // console.log(element)
 
         // Safely handle nested objects and properties with proper type casting
         await Todays.updateOne(
@@ -58,6 +62,7 @@ export const fetchTodayMatches = async () => {
               game_state: Number(element.game_state || 0),
               game_state_str: String(element.game_state_str || ''),
               domestic: String(element.domestic || ''),
+              scorecard: element.scorecard,
               competition: {
                 cid: Number(element.competition?.cid || 0),
                 title: String(element.competition?.title || ''),

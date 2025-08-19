@@ -1,304 +1,148 @@
 import mongoose from 'mongoose';
 
 const Scorecards = new mongoose.Schema({
-  match_id: { type: String, default: '' },
-  title: { type: String, default: '' },
-  short_title: { type: String, default: '' },
-  subtitle: { type: String, default: '' },
-  match_number: { type: String, default: '' },
-  format: { type: String, default: '' },
-  format_str: { type: String, default: '' },
-  status: { type: String, default: '' },
-  status_str: { type: String, default: '' },
-  status_note: { type: String, default: '' },
-  verified: { type: String, default: '' },
-  pre_squad: { type: String, default: '' },
-  odds_available: { type: String, default: '' },
-  game_state: { type: String, default: '' },
-  game_state_str: { type: String, default: '' },
-  competition: {
-    cid: { type: String, default: '' },
-    title: { type: String, default: '' },
-    abbr: { type: String, default: '' },
-    type: { type: String, default: '' },
-    category: { type: String, default: '' },
-    match_format: { type: String, default: '' },
-    season: { type: String, default: '' },
-    status: { type: String, default: '' },
-    datestart: { type: String, default: '' },
-    dateend: { type: String, default: '' },
-    country: { type: String, default: '' },
-    total_matches: { type: String, default: '' },
-    total_rounds: { type: String, default: '' },
-    total_teams: { type: String, default: '' },
-  },
-  teama: {
-    team_id: { type: String, default: '' },
-    name: { type: String, default: '' },
-    short_name: { type: String, default: '' },
-    logo_url: { type: String, default: '' },
-    thumb_url: { type: String, default: '' },
-    scores_full: { type: String, default: '' },
-    scores: { type: String, default: '' },
-    overs: { type: String, default: '' },
-  },
-  teamb: {
-    team_id: { type: String, default: '' },
-    name: { type: String, default: '' },
-    short_name: { type: String, default: '' },
-    logo_url: { type: String, default: '' },
-    thumb_url: { type: String, default: '' },
-    scores_full: { type: String, default: '' },
-    scores: { type: String, default: '' },
-    overs: { type: String, default: '' },
-  },
-  date_start: { type: String, default: '' },
-  date_end: { type: String, default: '' },
-  timestamp_start: { type: String, default: '' },
-  timestamp_end: { type: String, default: '' },
-  date_start_ist: { type: String, default: '' },
-  date_end_ist: { type: String, default: '' },
-  venue: {
-    venue_id: { type: String, default: '' },
-    name: { type: String, default: '' },
-    location: { type: String, default: '' },
-    country: { type: String, default: '' },
-    timezone: { type: String, default: '' },
-  },
-  umpires: { type: String, default: '' },
-  referee: { type: String, default: '' },
-  equation: { type: String, default: '' },
-  live: { type: String, default: '' },
-  result: { type: String, default: '' },
-  result_type: { type: String, default: '' },
-  win_margin: { type: String, default: '' },
-  winning_team_id: { type: String, default: '' },
-  commentary: { type: String, default: '' },
-  wagon: { type: String, default: '' },
-  latest_inning_number: { type: String, default: '' },
-  presquad_time: { type: String, default: '' },
-  verify_time: { type: String, default: '' },
-  match_dls_affected: { type: String, default: '' },
-  live_inning_number: { type: String, default: '' },
-  weather: {
-    weather: { type: String, default: '' },
-    weather_desc: { type: String, default: '' },
-    temp: { type: String, default: '' },
-    humidity: { type: String, default: '' },
-    visibility: { type: String, default: '' },
-    wind_speed: { type: String, default: '' },
-    clouds: { type: String, default: '' },
-  },
-  pitch: {
-    pitch_condition: { type: String, default: '' },
-    batting_condition: { type: String, default: '' },
-    pace_bowling_condition: { type: String, default: '' },
-    spine_bowling_condition: { type: String, default: '' },
-  },
-  toss: {
-    text: { type: String, default: '' },
-    winner: { type: String, default: '' },
-    decision: { type: String, default: '' },
-  },
-  current_over: { type: String, default: '' },
-  previous_over: { type: String, default: '' },
-  man_of_the_match: { type: String, default: '' },
-  man_of_the_series: { type: String, default: '' },
-  team_batting_first: { type: String, default: '' },
-  team_batting_second: { type: String, default: '' },
-  last_five_overs: { type: String, default: '' },
-  innings: [{
-    iid: { type: String, default: '' },
-    number: { type: String, default: '' },
-    name: { type: String, default: '' },
-    short_name: { type: String, default: '' },
-    status: { type: String, default: '' },
-    issuperover: { type: String, default: '' },
-    result: { type: String, default: '' },
-    batting_team_id: { type: String, default: '' },
-    fielding_team_id: { type: String, default: '' },
-    scores: { type: String, default: '' },
-    scores_full: { type: String, default: '' },
-    batsmen: [
-      {
-        name: { type: String, default: '' },
-        batsman_id: { type: String, default: '' },
-        batting: { type: String, default: '' },
-        position: { type: String, default: '' },
-        role: { type: String, default: '' },
-        role_str: { type: String, default: '' },
-        runs: { type: String, default: '' },
-        balls_faced: { type: String, default: '' },
-        fours: { type: String, default: '' },
-        sixes: { type: String, default: '' },
-        run0: { type: String, default: '' },
-        run1: { type: String, default: '' },
-        run2: { type: String, default: '' },
-        run3: { type: String, default: '' },
-        run5: { type: String, default: '' },
-        how_out: { type: String, default: '' },
-        dismissal: { type: String, default: '' },
-        strike_rate: { type: String, default: '' },
-        bowler_id: { type: String, default: '' },
-        first_fielder_id: { type: String, default: '' },
-        second_fielder_id: { type: String, default: '' },
-        third_fielder_id: { type: String, default: '' },
-      }
-    ],
-    bowlers: [
-      {
-        name: { type: String, default: '' },
-        bowler_id: { type: String, default: '' },
-        bowling: { type: String, default: '' },
-        position: { type: String, default: '' },
-        overs: { type: String, default: '' },
-        maidens: { type: String, default: '' },
-        runs_conceded: { type: String, default: '' },
-        wickets: { type: String, default: '' },
-        noballs: { type: String, default: '' },
-        wides: { type: String, default: '' },
-        econ: { type: String, default: '' },
-        run0: { type: String, default: '' },
-        bowledcount: { type: String, default: '' },
-        lbwcount: { type: String, default: '' },
-      }
-    ],
-    powerplay: {
-      p1: {
-        startover: { type: String, default: '' },
-        endover: { type: String, default: '' },
-      }
-    },
-    review: {
-      batting: {
-        batting_team_total_review: { type: String, default: '' },
-        batting_team_review_success: { type: String, default: '' },
-        batting_team_review_failed: { type: String, default: '' },
-        batting_team_review_available: { type: String, default: '' },
-        batting_team_review_retained: { type: String, default: '' },
-      },
-      bowling: {
-        bowling_team_total_review: { type: String, default: '' },
-        bowling_team_review_success: { type: String, default: '' },
-        bowling_team_review_failed: { type: String, default: '' },
-        bowling_team_review_available: { type: String, default: '' },
-        bowling_team_review_retained: { type: String, default: '' },
-      }
-    },
-    fows: [
-      {
-        name: { type: String, default: '' },
-        batsman_id: { type: String, default: '' },
-        runs: { type: String, default: '' },
-        balls: { type: String, default: '' },
-        how_out: { type: String, default: '' },
-        score_at_dismissal: { type: String, default: '' },
-        overs_at_dismissal: { type: String, default: '' },
-        bowler_id: { type: String, default: '' },
-        dismissal: { type: String, default: '' },
-        number: { type: String, default: '' },
-      }
-    ],
-    last_wicket: {
-      name: { type: String, default: '' },
-      batsman_id: { type: String, default: '' },
-      runs: { type: String, default: '' },
-      balls: { type: String, default: '' },
-      how_out: { type: String, default: '' },
-      score_at_dismissal: { type: String, default: '' },
-      overs_at_dismissal: { type: String, default: '' },
-      bowler_id: { type: String, default: '' },
-      dismissal: { type: String, default: '' },
-      number: { type: String, default: '' },
-    },
-    extra_runs: {
-      byes: { type: String, default: '' },
-      legbyes: { type: String, default: '' },
-      wides: { type: String, default: '' },
-      noballs: { type: String, default: '' },
-      penalty: { type: String, default: '' },
-      total: { type: String, default: '' },
-    },
-    equations: {
-      runs: { type: String, default: '' },
-      wickets: { type: String, default: '' },
-      overs: { type: String, default: '' },
-      bowlers_used: { type: String, default: '' },
-      runrate: { type: String, default: '' },
-    },
-    current_partnership: {
-      runs: { type: String, default: '' },
-      balls: { type: String, default: '' },
-      overs: { type: String, default: '' },
-      batsmen: [
-        {
-          name: { type: String, default: '' },
-          batsman_id: { type: String, default: '' },
-          runs: { type: String, default: '' },
-          balls: { type: String, default: '' },
-        },
-        {
-          name: { type: String, default: '' },
-          batsman_id: { type: String, default: '' },
-          runs: { type: String, default: '' },
-          balls: { type: String, default: '' },
-        }
-      ]
-    },
-    did_not_bat: [
-      {
-        player_id: { type: String, default: '' },
-        name: { type: String, default: '' },
-      }
-    ],
-    max_over: { type: String, default: '' },
-    target: { type: String, default: '' },
-  }]
-  ,
-  players: [{
-    pid: { type: String, default: '' },
-    title: { type: String, default: '' },
-    short_name: { type: String, default: '' },
-    first_name: { type: String, default: '' },
-    last_name: { type: String, default: '' },
-    middle_name: { type: String, default: '' },
-    birthdate: { type: String, default: '' },
-    birthplace: { type: String, default: '' },
-    country: { type: String, default: '' },
-    primary_team: { type: String, default: '' },
-    logo_url: { type: String, default: '' },
-    playing_role: { type: String, default: '' },
-    batting_style: { type: String, default: '' },
-    bowling_style: { type: String, default: '' },
-    fielding_position: { type: String, default: '' },
-    recent_match: { type: String, default: '' },
-    recent_appearance: { type: String, default: '' },
-    fantasy_player_rating: { type: String, default: '' },
-    facebook_profile: { type: String, default: '' },
-    twitter_profile: { type: String, default: '' },
-    instagram_profile: { type: String, default: '' },
-    debut_data: { type: String, default: '' },
-    bowling_type: { type: String, default: '' },
-    thumb_url: { type: String, default: '' },
-    profile_image: { type: String, default: '' },
-    nationality: { type: String, default: '' },
-    role: { type: String, default: '' },
-    role_str: { type: String, default: '' },
-  }],
-  match_notes: [[String]],
+  match_id: { type: String, required: true, index: true },
   
-  // Team stock price tracking
+  // Team stock prices
   teamStockPrices: {
     teama: { type: Number, default: 50 },
     teamb: { type: Number, default: 50 }
   },
   
-  // Track last processed events to avoid duplicate processing
-  lastProcessedEvents: {
-    teama: { type: String, default: "" },
-    teamb: { type: String, default: "" }
-  }
+  innings: [{
+    iid: { type: Number },
+    number: { type: Number },
+    name: { type: String },
+    short_name: { type: String },
+    status: { type: Number },
+    issuperover: { type: String },
+    result: { type: Number },
+    batting_team_id: { type: Number },
+    fielding_team_id: { type: Number },
+    scores: { type: String },
+    scores_full: { type: String },
+    
+    batsmen: [{
+      name: { type: String },
+      batsman_id: { type: String },
+      role: { type: String },
+      role_str: { type: String },
+      runs: { type: String },
+      balls_faced: { type: String },
+      fours: { type: String },
+      sixes: { type: String },
+      run0: { type: String },
+      run1: { type: String },
+      run2: { type: String },
+      run3: { type: String },
+      run5: { type: String },
+      how_out: { type: String },
+      dismissal: { type: String },
+      strike_rate: { type: String },
+      batting: { type: String },
+      position: { type: String },
+      bowler_id: { type: String },
+      first_fielder_id: { type: String },
+      second_fielder_id: { type: String },
+      third_fielder_id: { type: String },
+      currentPrice: { type: Number, default: 0 } // Store the calculated player price
+    }],
+    
+    bowlers: [{
+      name: { type: String },
+      bowler_id: { type: String },
+      overs: { type: String },
+      maidens: { type: String },
+      runs_conceded: { type: String },
+      wickets: { type: String },
+      economy: { type: String },
+      bowling: { type: String },
+      extras: { type: String },
+      noballs: { type: String },
+      wides: { type: String },
+      dots: { type: String }
+    }],
+    
+    extras: {
+      wides: { type: Number },
+      noballs: { type: Number },
+      byes: { type: Number },
+      legbyes: { type: Number },
+      penalty: { type: Number },
+      total: { type: Number }
+    },
+    
+    equations: {
+      runs: { type: Number },
+      wickets: { type: Number },
+      overs: { type: Number },
+      runrate: { type: Number }
+    },
+    
+    fows: [{
+      name: { type: String },
+      score: { type: String },
+      wicket: { type: String },
+      over: { type: String },
+      batsman_id: { type: String },
+      how_out: { type: String },
+      bowler_id: { type: String },
+      number: { type: Number }
+    }],
+    
+    last_wicket: {
+      name: { type: String },
+      score: { type: String },
+      wicket: { type: String },
+      over: { type: String },
+      batsman_id: { type: String },
+      how_out: { type: String },
+      bowler_id: { type: String },
+      number: { type: Number }
+    },
+    
+    partnerships: [{
+      runs: { type: Number },
+      balls: { type: Number },
+      overs: { type: Number },
+      batsmen: [{
+        name: { type: String },
+        batsman_id: { type: String },
+        runs: { type: Number },
+        balls: { type: Number }
+      }]
+    }]
+  }],
+  
+  teama: {
+    team_id: { type: String },
+    name: { type: String },
+    short_name: { type: String },
+    logo_url: { type: String },
+    thumb_url: { type: String },
+    scores_full: { type: String },
+    scores: { type: String },
+    overs: { type: String }
+  },
+  
+  teamb: {
+    team_id: { type: String },
+    name: { type: String },
+    short_name: { type: String },
+    logo_url: { type: String },
+    thumb_url: { type: String },
+    scores_full: { type: String },
+    scores: { type: String },
+    overs: { type: String }
+  },
+  
+  is_followon: { type: Boolean },
+  day_remaining_over: { type: Number },
+  status: { type: String },
+  status_str: { type: String },
+  status_note: { type: String },
+  result: { type: String },
+  lastUpdated: { type: Date, default: Date.now }
 });
-
 
 export default mongoose.model('Scorecards', Scorecards);

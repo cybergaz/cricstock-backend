@@ -1,12 +1,9 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import "dotenv/config";
 import Todays from "../models/Todays.js";
-
-// Store connected clients
-const connectedClients = new Set();
-
-// WebSocket server for client connections
-let wss = null;
+import Scorecards from "../models/Scorecards.js";
+import { processMatchEvents } from "./stock-price-service.js";
+import { broadcastToClients } from "./websocket-server.js";
 
 // Utility function to sanitize data and ensure it conforms to our schema
 const sanitizeData = (data) => {
@@ -152,7 +149,7 @@ const connectToThirdPartySocket = () => {
             }
           } else {
             broadcastToClients({
-              type: 'match_update',
+              type: 'ball_update',
               data: parsedData.response
             });
           }
@@ -204,17 +201,20 @@ const updateMatchData = async (data) => {
       return;
     }
 
+    // Create a deep copy of the data to avoid modifying readonly properties
+    const dataCopy = JSON.parse(JSON.stringify(data));
+
     // First, check if the existing document has live as a string and convert it
-    const existingMatch = await Todays.findOne({ match_id: data.match_id });
+    const existingMatch = await Todays.findOne({ match_id: dataCopy.match_id });
     if (existingMatch && typeof existingMatch.live === 'string') {
       // Convert the string live field to an object structure
       await Todays.updateOne(
-        { match_id: data.match_id },
+        { match_id: dataCopy.match_id },
         {
           $unset: { live: "" },
           $set: {
             live: {
-              mid: data.match_id,
+              mid: dataCopy.match_id,
               status: 0,
               status_str: '',
               game_state: 0,
@@ -242,9 +242,9 @@ const updateMatchData = async (data) => {
     }
 
     // Handle commentaries separately if they exist
-    if (data.live && data.live.commentaries) {
+    if (dataCopy.live && dataCopy.live.commentaries) {
       // Ensure commentaries are in the expected format
-      const formattedCommentaries = data.live.commentaries.map(commentary => {
+      const formattedCommentaries = dataCopy.live.commentaries.map(commentary => {
         return {
           event_id: commentary.event_id?.toString() || '',
           event: commentary.event?.toString() || '',
@@ -278,33 +278,152 @@ const updateMatchData = async (data) => {
       // Update just the commentaries
       if (formattedCommentaries.length > 0) {
         await Todays.updateOne(
-          { match_id: data.match_id },
+          { match_id: dataCopy.match_id },
           { $set: { 'live.commentaries': formattedCommentaries } }
         );
       }
 
       // Remove commentaries from the data to avoid duplicate processing
-      const dataWithoutCommentaries = { ...data };
+      const dataWithoutCommentaries = { ...dataCopy };
       if (dataWithoutCommentaries.live) {
         delete dataWithoutCommentaries.live.commentaries;
       }
 
       // Update the rest of the data
       await Todays.updateOne(
-        { match_id: data.match_id },
+        { match_id: dataCopy.match_id },
         { $set: dataWithoutCommentaries },
         { upsert: true }
       );
     } else {
       // If no commentaries, just update the data directly
       await Todays.updateOne(
-        { match_id: data.match_id },
-        { $set: data },
+        { match_id: dataCopy.match_id },
+        { $set: dataCopy },
         { upsert: true }
       );
     }
 
-    console.log(`Updated match data for match ID: ${data.match_id}`);
+    // Update the Scorecards collection for T20 matches
+    if (dataCopy.match_info && dataCopy.match_info.format_str.toLowerCase().includes("t20") && dataCopy.scorecard) {
+      // Extract team information from the match data
+      const teamA = {
+        team_id: dataCopy.match_info.teama.team_id.toString(),
+        name: dataCopy.match_info.teama.name,
+        short_name: dataCopy.match_info.teama.short_name,
+        logo_url: dataCopy.match_info.teama.logo_url,
+        thumb_url: dataCopy.match_info.teama.thumb_url,
+        scores_full: dataCopy.match_info.teama.scores_full,
+        scores: dataCopy.match_info.teama.scores,
+        overs: dataCopy.match_info.teama.overs
+      };
+
+      const teamB = {
+        team_id: dataCopy.match_info.teamb.team_id.toString(),
+        name: dataCopy.match_info.teamb.name,
+        short_name: dataCopy.match_info.teamb.short_name,
+        logo_url: dataCopy.match_info.teamb.logo_url,
+        thumb_url: dataCopy.match_info.teamb.thumb_url,
+        scores_full: dataCopy.match_info.teamb.scores_full,
+        scores: dataCopy.match_info.teamb.scores,
+        overs: dataCopy.match_info.teamb.overs
+      };
+
+      // Prepare the scorecard data
+      const scorecardData = {
+        match_id: dataCopy.match_id.toString(),
+        innings: dataCopy.scorecard.innings || [],
+        is_followon: dataCopy.scorecard.is_followon,
+        day_remaining_over: dataCopy.scorecard.day_remaining_over,
+        teama: teamA,
+        teamb: teamB,
+        status: dataCopy.match_info.status.toString(),
+        status_str: dataCopy.match_info.status_str,
+        status_note: dataCopy.match_info.status_note,
+        result: dataCopy.match_info.result,
+        lastUpdated: new Date()
+      };
+
+      // Find existing scorecard to preserve teamStockPrices
+      const existingScorecard = await Scorecards.findOne({ match_id: dataCopy.match_id.toString() });
+
+      if (existingScorecard && existingScorecard.teamStockPrices) {
+        // Keep existing stock prices
+        scorecardData.teamStockPrices = existingScorecard.teamStockPrices;
+      } else {
+        // Initialize stock prices if they don't exist
+        scorecardData.teamStockPrices = {
+          teama: 50,
+          teamb: 50
+        };
+      }
+
+      // Update or create the scorecard
+      await Scorecards.updateOne(
+        { match_id: dataCopy.match_id.toString() },
+        { $set: scorecardData },
+        { upsert: true }
+      );
+
+      console.log(`Updated scorecard for match ID: ${dataCopy.match_id}`);
+
+      // Process match events to update team stock prices
+      await processMatchEvents(dataCopy);
+
+      // Get updated scorecard with player prices
+      const updatedScorecard = await Scorecards.findOne({ match_id: dataCopy.match_id.toString() });
+
+      if (updatedScorecard) {
+        // Create a copy of the match data with player prices and team stock prices
+        const enhancedMatchData = { ...dataCopy };
+
+        // Add team stock prices to the match data
+        enhancedMatchData.teamStockPrices = updatedScorecard.teamStockPrices;
+
+        // Add player prices to the match data
+        if (enhancedMatchData.scorecard && enhancedMatchData.scorecard.innings) {
+          for (let i = 0; i < enhancedMatchData.scorecard.innings.length; i++) {
+            if (!enhancedMatchData.scorecard.innings[i].batsmen) continue;
+
+            for (let j = 0; j < enhancedMatchData.scorecard.innings[i].batsmen.length; j++) {
+              const batsmanId = enhancedMatchData.scorecard.innings[i].batsmen[j].batsman_id;
+
+              // Find corresponding batsman in the updated scorecard
+              if (updatedScorecard.innings[i] && updatedScorecard.innings[i].batsmen) {
+                const updatedBatsman = updatedScorecard.innings[i].batsmen.find(
+                  b => b.batsman_id === batsmanId
+                );
+
+                if (updatedBatsman && updatedBatsman.currentPrice) {
+                  // Add the current price to the match data
+                  enhancedMatchData.scorecard.innings[i].batsmen[j].currentPrice = updatedBatsman.currentPrice;
+                }
+              }
+            }
+          }
+        }
+
+        // Broadcast the enhanced match data with player prices and team stock prices
+        broadcastToClients({
+          type: 'match_update',
+          data: enhancedMatchData
+        });
+      } else {
+        // Fallback to broadcasting the original data
+        broadcastToClients({
+          type: 'match_update',
+          data: dataCopy
+        });
+      }
+    } else {
+      // For non-T20 matches or matches without scorecard, broadcast the original data
+      broadcastToClients({
+        type: 'match_update',
+        data: dataCopy
+      });
+    }
+
+    console.log(`Updated match data for match ID: ${dataCopy.match_id}`);
   } catch (error) {
     console.error(`Error updating match data: ${error.message}`);
     // Log more details about the error
@@ -318,147 +437,4 @@ const updateMatchData = async (data) => {
   }
 };
 
-// Set up WebSocket server for client connections
-const setupWebSocketServer = (port) => {
-  // Create WebSocket server directly
-  wss = new WebSocketServer({ port });
-
-  wss.on('connection', (ws, req) => {
-    console.log('Client connected:', req.socket.remoteAddress);
-    connectedClients.add(ws);
-
-    // Send current match data to the newly connected client
-    sendCurrentMatchData(ws);
-
-    ws.on('close', () => {
-      console.log('Client disconnected');
-      connectedClients.delete(ws);
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket client error:', error);
-      connectedClients.delete(ws);
-    });
-
-    // Handle incoming messages from clients
-    ws.on('message', (message) => {
-      console.log('Received message from client:', message.toString());
-      try {
-        const data = JSON.parse(message.toString());
-        handleClientMessage(ws, data);
-      } catch (error) {
-        console.error('Error parsing client message:', error);
-      }
-    });
-  });
-
-  console.log(`[WEBSOCKET] : Live @ ${port}`);
-  return wss;
-};
-
-// Handle client messages
-const handleClientMessage = (ws, data) => {
-  switch (data.type) {
-    case 'subscribePortfolio':
-      // Handle portfolio subscription
-      handlePortfolioSubscription(ws, data);
-      break;
-    case 'unsubscribePortfolio':
-      // Handle portfolio unsubscription
-      handlePortfolioUnsubscription(ws, data);
-      break;
-    default:
-      console.log('Unknown message type:', data.type);
-  }
-};
-
-// Handle portfolio subscription
-const handlePortfolioSubscription = async (ws, data) => {
-  try {
-    // Store subscription info
-    ws.subscriptionType = 'portfolio';
-    ws.userId = data.userId;
-
-    // Send initial portfolio data
-    await sendPortfolioData(ws);
-  } catch (error) {
-    console.error('Error handling portfolio subscription:', error);
-  }
-};
-
-// Handle portfolio unsubscription
-const handlePortfolioUnsubscription = (ws, data) => {
-  ws.subscriptionType = null;
-  ws.userId = null;
-  console.log('Client unsubscribed from portfolio updates');
-};
-
-// Broadcast to all connected clients
-const broadcastToClients = (data) => {
-  connectedClients.forEach((client) => {
-    console.log("broadcasted to connected client")
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(data));
-    }
-  });
-};
-
-// Broadcast to specific user's portfolio clients
-const broadcastToPortfolioClients = (userId, data) => {
-  connectedClients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN &&
-      client.subscriptionType === 'portfolio' &&
-      client.userId === userId) {
-      client.send(JSON.stringify(data));
-    }
-  });
-};
-
-// Send current match data to a client
-const sendCurrentMatchData = async (ws) => {
-  try {
-    const matches = await Todays.find({}).lean();
-
-    if (matches && matches.length > 0) {
-      ws.send(JSON.stringify({
-        type: 'initial_matches',
-        data: matches
-      }));
-    }
-  } catch (error) {
-    console.error(`Error sending current match data: ${error.message}`);
-  }
-};
-
-// Send portfolio data to a client
-const sendPortfolioData = async (ws) => {
-  try {
-    if (!ws.userId) {
-      console.warn('No user ID found for portfolio data request');
-      return;
-    }
-
-    // Get user's portfolio data (you'll need to implement this)
-    const portfolioData = await getUserPortfolioData(ws.userId);
-
-    ws.send(JSON.stringify({
-      type: 'portfolio_update',
-      data: portfolioData
-    }));
-  } catch (error) {
-    console.error(`Error sending portfolio data: ${error.message}`);
-  }
-};
-
-// Helper function to get user portfolio data
-const getUserPortfolioData = async (userId) => {
-  // Implement this based on your existing portfolio logic
-  // This should return the same structure as your current portfolio data
-  return {};
-};
-
-export {
-  connectToThirdPartySocket,
-  setupWebSocketServer,
-  broadcastToPortfolioClients
-}; 
+export { connectToThirdPartySocket };

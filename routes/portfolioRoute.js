@@ -4,6 +4,8 @@ import { User } from "../models/User.js";
 import { Company } from "../models/Company.js";
 const router = express.Router();
 
+
+
 router.post("/buy-player", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
@@ -800,7 +802,7 @@ router.post("/sell-team", authMiddleware, async (req, res) => {
 router.post("/auto-sell-player-portfolios/:matchId/:playerId", async (req, res) => {
   try {
     const { matchId, playerId } = req.params;
-    
+
     // Find all users with active holdings for this player in this match
     const users = await User.find({
       "playerPortfolios": {
@@ -847,7 +849,7 @@ router.post("/auto-sell-player-portfolios/:matchId/:playerId", async (req, res) 
       for (const portfolio of activePortfolios) {
         const quantityHeld = Number(portfolio.quantity) || 0;
         const buyPrice = Number(portfolio.boughtPrice) || 0;
-        
+
         if (quantityHeld > 0 && buyPrice > 0) {
           // Auto-sell at 50% of buying price
           const autoSellPrice = buyPrice * 0.5;
