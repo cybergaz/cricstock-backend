@@ -136,7 +136,7 @@ const handlePortfolioSubscription = async (ws, data) => {
     console.log('Client subscribed to portfolio updates:', data.match_id);
 
     // Send initial portfolio data
-    await sendCurrentPortfolioData(ws);
+    // await sendCurrentPortfolioData(ws);
   } catch (error) {
     console.error('Error handling portfolio subscription:', error);
     ws.send(JSON.stringify({
